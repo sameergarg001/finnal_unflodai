@@ -158,7 +158,13 @@ async function createStep(
     modelVersion = res.modelVersion;
   } catch (e) {
     console.warn("[step] AI generation failed, using fallback:", (e as Error).message);
-    draft = fallbackChallenge(skill.slug, difficulty);
+    const recentTitles = (
+      await db.challenge.findMany({ where: { userId, skillId: skill.id }, orderBy: { assignedAt: "desc" }, take: 4, select: { title: true } })
+    ).map((c) => c.title);
+    draft = fallbackChallenge(skill.slug, difficulty, {
+      recentTitles,
+      painPoint: asStrings(p?.reflection?.analysis?.painPoints)[0] ?? p?.reflection?.whatWasHard,
+    });
   }
 
   return db.challenge.create({

@@ -1,110 +1,120 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { WeeklyReview, WeeklyReviewSkeleton } from "@/components/WeeklyReview";
-import { StreakBadge } from "@/components/MentorBrief";
-import { getStreak } from "@/server/services/mentor";
 import { db } from "@/lib/db";
 import { requireReadyUser } from "@/server/auth/session";
+import { levelByValue, levelProgress } from "@/server/assessment/levels";
 import { recallInsights } from "@/server/engine/memory";
-import { Nav } from "@/components/Nav";
-import { Card, PageTitle, Sparkline, levelName } from "@/components/ui";
+import { getStreak } from "@/server/services/mentor";
+import { AppShell, More } from "@/components/AppShell";
+import { WeeklyReview, WeeklyReviewSkeleton } from "@/components/WeeklyReview";
+import { Card, ScoreBar } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProgressPage() {
   const user = await requireReadyUser();
-  const [scores, events, history, insights, streak] = await Promise.all([
+  const [scores, active, history, insights, streak, done, practised] = await Promise.all([
     db.skillScore.findMany({ where: { userId: user.id }, include: { skill: true } }),
-    db.skillScoreEvent.findMany({ where: { userId: user.id }, orderBy: { createdAt: "asc" } }),
+    db.userSkill.findMany({ where: { userId: user.id, isActive: true }, select: { skillId: true } }),
     db.challenge.findMany({
       where: { userId: user.id, status: { not: "assigned" } },
       include: { skill: true },
       orderBy: { assignedAt: "desc" },
       take: 20,
     }),
-    recallInsights(user.id, "", 8),
+    recallInsights(user.id, "", 6),
     getStreak(user),
+    db.challenge.count({ where: { userId: user.id, status: "completed" } }),
+    db.skillScoreEvent.findMany({ where: { userId: user.id, source: "challenge" }, select: { skillId: true }, distinct: ["skillId"] }),
   ]);
-
-  const seriesBySkill = new Map<string, number[]>();
-  for (const e of events) {
-    const arr = seriesBySkill.get(e.skillId) ?? [];
-    arr.push(e.newScore);
-    seriesBySkill.set(e.skillId, arr);
-  }
-  const growth = scores
-    .map((s) => {
-      const series = seriesBySkill.get(s.skillId) ?? [s.score];
-      return { ...s, series, change: s.score - series[0] };
-    })
-    .sort((a, b) => a.skill.sortOrder - b.skill.sortOrder);
+  const activeIds = new Set(active.map((a) => a.skillId));
+  const skills = scores.filter((s) => activeIds.has(s.skillId)).sort((a, b) => a.skill.sortOrder - b.skill.sortOrder);
+  // Minimal: show skills you've actually worked on; the rest stay tucked away.
+  const worked = new Set(practised.map((p) => p.skillId));
+  const mainSkills = skills.filter((s) => worked.has(s.skillId));
+  const otherSkills = skills.filter((s) => !worked.has(s.skillId));
 
   return (
-    <>
-      <Nav name={user.name} />
-      <main className="mx-auto max-w-5xl px-6 py-10 space-y-8">
-        <PageTitle title="Your progress" subtitle="Scores move slowly on purpose — they change based on evidence from real practical steps." />
-        <div className="-mt-4 flex flex-wrap items-center gap-3 text-sm text-slate-600">
-          <StreakBadge current={streak.current} best={streak.best} doneToday={streak.doneToday} />
-          <span>Best streak: {streak.best} day{streak.best === 1 ? "" : "s"}</span>
-        </div>
+    <AppShell title="Progress">
+      <div className="grid grid-cols-3 gap-2 text-center">
+        <Stat value={`🔥 ${streak.current}`} label="day streak" />
+        <Stat value={String(streak.best)} label="best streak" />
+        <Stat value={String(done)} label="steps done" />
+      </div>
 
-        <Suspense fallback={<WeeklyReviewSkeleton />}>
-          <WeeklyReview user={user} />
-        </Suspense>
+      <Suspense fallback={<WeeklyReviewSkeleton />}>
+        <WeeklyReview user={user} />
+      </Suspense>
 
+      {mainSkills.length > 0 ? (
         <Card>
-          <h2 className="mb-4 font-semibold">Skill growth</h2>
-          <div className="divide-y divide-slate-100">
-            {growth.map((g) => (
-              <div key={g.skillId} className="flex items-center gap-4 py-3">
-                <div className="w-48">
-                  <p className="text-sm font-medium">{g.skill.name}</p>
-                  <p className="text-xs text-slate-500">{levelName(g.score)} · {Math.round(g.score)}/100</p>
-                </div>
-                <Sparkline values={g.series} />
-                <span className={`ml-auto text-sm font-medium ${g.change > 0 ? "text-emerald-600" : g.change < 0 ? "text-amber-600" : "text-slate-400"}`}>
-                  {g.change > 0 ? "+" : ""}{g.change.toFixed(1)}
-                </span>
-              </div>
-            ))}
-          </div>
+          <h2 className="mb-3 font-semibold">Your levels</h2>
+          <LevelList items={mainSkills} />
         </Card>
+      ) : (
+        <p className="px-1 text-center text-sm text-slate-500">Complete your first step and your levels will show here.</p>
+      )}
 
-        <div className="grid gap-6 md:grid-cols-2">
-          <Card>
-            <h2 className="mb-3 font-semibold">What we've learned about you</h2>
-            {insights.length === 0 ? (
-              <p className="text-sm text-slate-500">Complete a few challenges with detailed reflections to see insights here.</p>
-            ) : (
-              <ul className="space-y-2 text-sm">
-                {insights.map((i) => (
-                  <li key={i.text} className="flex gap-2">
-                    <span className="mt-0.5 rounded bg-slate-100 px-1.5 text-[11px] uppercase text-slate-600">{i.kind}</span>
-                    <span>{i.text}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
+      {otherSkills.length > 0 && (
+        <More label={mainSkills.length ? "Other skills" : "All skills"}>
+          <LevelList items={otherSkills} />
+        </More>
+      )}
 
-          <Card>
-            <h2 className="mb-3 font-semibold">Challenge history</h2>
-            {history.length === 0 ? (
-              <p className="text-sm text-slate-500">No finished challenges yet.</p>
-            ) : (
-              <ul className="space-y-2 text-sm">
-                {history.map((c) => (
-                  <li key={c.id} className="flex justify-between gap-3">
-                    <Link href={`/challenge/${c.id}`} className="truncate hover:text-brand-600">{c.title}</Link>
-                    <span className="shrink-0 text-xs text-slate-500">{c.skill.name} · {c.status}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
-        </div>
-      </main>
-    </>
+      {insights.length > 0 && (
+        <More label="What your mentor noticed">
+          <ul className="space-y-2 text-sm text-slate-700">
+            {insights.map((i) => <li key={i.text}>• {i.text}</li>)}
+          </ul>
+        </More>
+      )}
+
+      {history.length > 0 && (
+        <More label="Past steps">
+          <ul className="divide-y divide-slate-100 text-sm">
+            {history.map((c) => (
+              <li key={c.id}>
+                <Link href={`/challenge/${c.id}`} className="flex justify-between gap-3 py-2.5">
+                  <span className="truncate">{c.title}</span>
+                  <span className="shrink-0 text-xs text-slate-400">{c.status === "completed" ? "✓" : c.status}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </More>
+      )}
+    </AppShell>
+  );
+}
+
+function LevelList({ items }: { items: { skillId: string; score: number; startingLevel: number | null; skill: { name: string } }[] }) {
+  return (
+    <ul className="space-y-3.5">
+      {items.map((s) => {
+        const { level, pct } = levelProgress(s.score);
+        const started = levelByValue(s.startingLevel);
+        const up = started && level.value > started.value;
+        return (
+          <li key={s.skillId}>
+            <div className="mb-1 flex items-center justify-between text-sm">
+              <span>{s.skill.name}</span>
+              <span className={`text-xs font-semibold ${up ? "text-emerald-600" : "text-slate-500"}`}>
+                {up && "↑ "}{level.name}
+              </span>
+            </div>
+            <ScoreBar score={pct} />
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function Stat({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="rounded-2xl bg-white px-2 py-3 shadow-sm">
+      <p className="text-lg font-bold">{value}</p>
+      <p className="text-[11px] text-slate-500">{label}</p>
+    </div>
   );
 }

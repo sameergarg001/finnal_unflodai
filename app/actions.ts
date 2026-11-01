@@ -7,8 +7,8 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { hashPassword, verifyPassword } from "@/server/auth/password";
 import { createSession, destroySession, requireUser } from "@/server/auth/session";
-import { getAssessmentSkills, submitInitialAssessment } from "@/server/services/assessment";
-import { setUserSkills } from "@/server/services/skills";
+import { setSelfLevels } from "@/server/services/assessment";
+import { ensureUserSetup, setUserSkills } from "@/server/services/skills";
 import {
   SessionError,
   continueSession,
@@ -23,39 +23,38 @@ export type FormState = { error?: string } | undefined;
 
 // ─── Auth ─────────────────────────────────────────────────────────────────
 
-const signupSchema = z.object({
-  name: z.string().trim().min(1, "Please enter your name").max(80),
+const credentialsSchema = z.object({
   email: z.string().trim().toLowerCase().email("Please enter a valid email"),
-  password: z.string().min(8, "Password must be at least 8 characters").max(200),
+  password: z.string().min(1, "Please enter your password").max(200),
   timezone: z.string().max(64).optional(),
 });
 
 export async function signupAction(_: FormState, form: FormData): Promise<FormState> {
-  const parsed = signupSchema.safeParse(Object.fromEntries(form));
+  const parsed = credentialsSchema.safeParse(Object.fromEntries(form));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
-  const { name, email, password, timezone } = parsed.data;
+  const { email, password, timezone } = parsed.data;
+  if (password.length < 8) return { error: "Password needs at least 8 characters" };
 
   if (await db.user.findUnique({ where: { email } })) {
-    return { error: "An account with this email already exists" };
+    return { error: "This email already has an account — log in instead" };
   }
   const user = await db.user.create({
-    data: { name, email, passwordHash: await hashPassword(password), timezone: timezone || "UTC" },
+    data: { email, passwordHash: await hashPassword(password), timezone: timezone || "UTC" },
   });
+  await ensureUserSetup(user.id);
   await createSession(user.id);
-  redirect("/onboarding");
+  redirect("/dashboard");
 }
 
-const loginSchema = z.object({
-  email: z.string().trim().toLowerCase().email("Please enter a valid email"),
-  password: z.string().min(1, "Please enter your password"),
-});
-
 export async function loginAction(_: FormState, form: FormData): Promise<FormState> {
-  const parsed = loginSchema.safeParse(Object.fromEntries(form));
+  const parsed = credentialsSchema.safeParse(Object.fromEntries(form));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const user = await db.user.findUnique({ where: { email: parsed.data.email } });
   if (!user?.passwordHash || !(await verifyPassword(parsed.data.password, user.passwordHash))) {
     return { error: "Incorrect email or password" };
+  }
+  if (parsed.data.timezone && parsed.data.timezone !== user.timezone) {
+    await db.user.update({ where: { id: user.id }, data: { timezone: parsed.data.timezone } });
   }
   await createSession(user.id);
   redirect("/dashboard");
@@ -63,52 +62,52 @@ export async function loginAction(_: FormState, form: FormData): Promise<FormSta
 
 export async function logoutAction() {
   await destroySession();
-  redirect("/");
+  redirect("/login");
 }
 
-// ─── Onboarding & skills ──────────────────────────────────────────────────
-
-const onboardingSchema = z.object({
-  occupation: z.string().trim().max(120).optional(),
-  goals: z.string().trim().max(600).optional(),
-});
-
-export async function onboardingAction(form: FormData) {
-  const user = await requireUser();
-  const { occupation, goals } = onboardingSchema.parse({
-    occupation: form.get("occupation") ?? undefined,
-    goals: form.get("goals") ?? undefined,
-  });
-  const specific = form.getAll("specific").map(String);
-
-  await db.userProfile.upsert({
-    where: { userId: user.id },
-    create: { userId: user.id, occupation, goals, onboardingDone: true },
-    update: { occupation, goals, onboardingDone: true },
-  });
-  await setUserSkills(user.id, specific);
-  redirect("/assessment");
-}
+// ─── "Me" — all optional ──────────────────────────────────────────────────
 
 export async function updateSkillsAction(form: FormData) {
   const user = await requireUser();
   await setUserSkills(user.id, form.getAll("specific").map(String));
-  revalidatePath("/dashboard");
-  redirect("/dashboard?skills=updated");
+  revalidatePath("/me");
+  redirect("/me?saved=skills");
 }
 
-// ─── Assessment ───────────────────────────────────────────────────────────
-
-export async function assessmentAction(form: FormData) {
+export async function updateLevelsAction(form: FormData) {
   const user = await requireUser();
-  const skills = await getAssessmentSkills(user.id);
   const levels: Record<string, number> = {};
-  for (const s of skills) {
-    const v = Number(form.get(s.id));
-    if (Number.isInteger(v) && v >= 1 && v <= 5) levels[s.id] = v;
+  for (const [k, v] of form.entries()) {
+    if (!k.startsWith("level:")) continue;
+    const n = Number(v);
+    if (Number.isInteger(n) && n >= 1 && n <= 5) levels[k.slice(6)] = n;
   }
-  await submitInitialAssessment(user.id, levels);
-  redirect("/dashboard?welcome=1");
+  await setSelfLevels(user.id, levels);
+  revalidatePath("/me");
+  redirect("/me?saved=levels");
+}
+
+const aboutSchema = z.object({
+  name: z.string().trim().max(80).optional(),
+  occupation: z.string().trim().max(120).optional(),
+  goals: z.string().trim().max(600).optional(),
+});
+
+export async function updateAboutAction(form: FormData) {
+  const user = await requireUser();
+  const d = aboutSchema.parse({
+    name: form.get("name") ?? undefined,
+    occupation: form.get("occupation") ?? undefined,
+    goals: form.get("goals") ?? undefined,
+  });
+  await db.user.update({ where: { id: user.id }, data: { name: d.name || null } });
+  await db.userProfile.upsert({
+    where: { userId: user.id },
+    create: { userId: user.id, occupation: d.occupation || null, goals: d.goals || null, onboardingDone: true },
+    update: { occupation: d.occupation || null, goals: d.goals || null },
+  });
+  revalidatePath("/me");
+  redirect("/me?saved=about");
 }
 
 // ─── Sessions: choose skill + situation → practical steps ────────────────
@@ -118,7 +117,7 @@ const startSchema = z.object({
   situation: z
     .string()
     .trim()
-    .min(15, "Describe your situation in a bit more detail (15+ characters)")
+    .min(5, "Tell your mentor a bit about what's going on")
     .max(2000),
 });
 
@@ -158,19 +157,29 @@ export async function skipChallengeAction(form: FormData) {
   redirect("/dashboard");
 }
 
+// Only "did it?" and a short note are required; ratings are optional (default: middle).
+const optionalRating = z.preprocess((v) => (v === "" || v == null ? 3 : v), z.coerce.number().int().min(1).max(5));
 const reflectionSchema = z.object({
   challengeId: z.string().min(1),
-  completed: z.enum(["yes", "no"]),
-  selfRating: z.coerce.number().int().min(1).max(5),
-  perceivedDifficulty: z.coerce.number().int().min(1).max(5),
-  whatHappened: z.string().trim().min(10, "Tell us a little more about what happened (10+ characters)").max(2000),
+  completed: z.enum(["yes", "no"], { message: "Tap \"Did it\" or \"Didn't manage\"" }),
+  selfRating: optionalRating,
+  perceivedDifficulty: optionalRating,
+  whatHappened: z.string().trim().min(3, "Write a few words about how it went").max(2000),
   whatWasHard: z.string().trim().max(1500).optional(),
   whatLearned: z.string().trim().max(1500).optional(),
 });
 
 export async function reflectionAction(_: FormState, form: FormData): Promise<FormState> {
   const user = await requireUser();
-  const parsed = reflectionSchema.safeParse(Object.fromEntries(form));
+  const parsed = reflectionSchema.safeParse({
+    challengeId: form.get("challengeId"),
+    completed: form.get("completed") ?? undefined,
+    selfRating: form.get("selfRating"),
+    perceivedDifficulty: form.get("perceivedDifficulty"),
+    whatHappened: form.get("whatHappened") ?? "",
+    whatWasHard: form.get("whatWasHard") || undefined,
+    whatLearned: form.get("whatLearned") || undefined,
+  });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const { challengeId, completed, ...rest } = parsed.data;
 
@@ -207,6 +216,6 @@ export async function askMentorAction(_: FormState, form: FormData): Promise<For
     if (e instanceof MentorError) return { error: e.message };
     throw e;
   }
-  revalidatePath(parsed.data.challengeId ? `/challenge/${parsed.data.challengeId}` : "/dashboard");
+  revalidatePath(parsed.data.challengeId ? `/challenge/${parsed.data.challengeId}` : "/mentor");
   return {};
 }

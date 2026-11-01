@@ -12,3 +12,10 @@
 body {
   @apply bg-slate-50 text-slate-900 antialiased;
 }
+
+/* App feel: no tap flash, no text-size jumps, no pull-to-refresh bounce */
+html {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior-y: none;
+}

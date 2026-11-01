@@ -17,8 +17,10 @@ AI-powered personal skill development. UnfoldAI assesses your current abilities,
 
 ## How it works
 
-1. **Sign up** and pick your own level (Beginner → Expert) for each skill.
-2. **Choose a skill** to work on and **describe your real situation**.
+Mobile-first app (installable to the home screen) with four tabs: **Today · Mentor · Progress · Me**.
+
+1. **Sign up** with just email + password — no setup questions. 12 core skills start automatically.
+2. Tell your mentor **what's going on today** (the skill is suggested; change it if you want).
 3. UnfoldAI gives you **one practical step** for that situation.
 4. Do it, then **give feedback** on how it went.
 5. UnfoldAI identifies your **pain points** and gives the **next step** targeting them.

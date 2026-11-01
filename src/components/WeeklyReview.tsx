@@ -6,14 +6,11 @@ type UserLite = { id: string; name: string | null; timezone: string };
 /** Mentor's weekly review. Streamed in with Suspense. */
 export async function WeeklyReview({ user }: { user: UserLite }) {
   const review = await getOrCreateWeeklyReview(user);
+  if (!review) return null; // nothing to review yet — keep the screen clean
   return (
     <Card>
-      <h2 className="font-semibold">Your mentor&apos;s weekly review</h2>
-      {!review ? (
-        <p className="mt-2 text-sm text-slate-500">
-          Complete and give feedback on a few steps this week, and your mentor will review your week here.
-        </p>
-      ) : (
+      <h2 className="font-semibold">This week</h2>
+      {(
         <div className="mt-3 space-y-4 text-sm">
           <p className="text-slate-800">{review.content.summary}</p>
           {review.content.wins.length > 0 && (
@@ -41,7 +38,7 @@ export async function WeeklyReview({ user }: { user: UserLite }) {
 export function WeeklyReviewSkeleton() {
   return (
     <Card>
-      <h2 className="font-semibold">Your mentor&apos;s weekly review</h2>
+      <h2 className="font-semibold">This week</h2>
       <p className="mt-2 animate-pulse text-sm text-slate-500">Your mentor is reviewing your week…</p>
     </Card>
   );

@@ -1,9 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { startSessionAction } from "../../app/actions";
 import { SubmitButton } from "./SubmitButton";
-import { input, label } from "./ui";
+import { input } from "./ui";
 
 export interface SkillOption {
   id: string;
@@ -13,62 +13,59 @@ export interface SkillOption {
   levelValue: number;
 }
 
+/**
+ * One question only: "What's going on today?". The skill is pre-picked
+ * (mentor's suggestion) and can be changed from a small collapsed menu.
+ */
 export function StartSessionForm({ skills, suggestedId }: { skills: SkillOption[]; suggestedId: string | null }) {
   const [state, action] = useActionState(startSessionAction, undefined);
-  const groups = [
-    { title: "Core skills", items: skills.filter((s) => s.category === "core") },
-    { title: "Your specific skills", items: skills.filter((s) => s.category === "specific") },
-  ].filter((g) => g.items.length > 0);
+  const [skillId, setSkillId] = useState(suggestedId ?? skills[0]?.id ?? "");
+  const [open, setOpen] = useState(false);
+  const chosen = skills.find((s) => s.id === skillId);
 
   return (
-    <form action={action} className="space-y-6">
-      <fieldset>
-        <legend className="font-semibold">1. Which skill do you want to work on today?</legend>
-        {groups.map((g) => (
-          <div key={g.title} className="mt-3">
-            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-400">{g.title}</p>
-            <div className="grid gap-2 sm:grid-cols-3">
-              {g.items.map((s) => (
-                <label
-                  key={s.id}
-                  className="relative flex cursor-pointer flex-col rounded-lg border border-slate-200 px-3 py-2 hover:border-brand-500 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50"
-                >
-                  <input type="radio" name="skillId" value={s.id} defaultChecked={s.id === suggestedId} required className="sr-only" />
-                  <span className="text-sm font-medium">{s.name}</span>
-                  <span className="text-xs text-slate-500">Lv {s.levelValue} · {s.levelName}</span>
-                  {s.id === suggestedId && (
-                    <span className="absolute right-2 top-2 rounded bg-amber-100 px-1.5 text-[10px] font-semibold text-amber-700">
-                      Suggested
-                    </span>
-                  )}
-                </label>
-              ))}
-            </div>
-          </div>
-        ))}
-      </fieldset>
+    <form action={action} className="space-y-3">
+      <input type="hidden" name="skillId" value={skillId} />
+      <textarea
+        name="situation"
+        rows={4}
+        required
+        minLength={5}
+        aria-label="What's going on today?"
+        className={`${input} !mt-0 resize-none`}
+        placeholder="What's going on today? e.g. I have a team meeting and I usually stay quiet."
+      />
 
-      <div>
-        <label className={`${label} !text-base !font-semibold !text-slate-900`} htmlFor="situation">
-          2. What's your current situation?
-        </label>
-        <p className="text-sm text-slate-500">
-          Describe a real situation where you need this skill — what's happening, who's involved, what you find difficult.
-        </p>
-        <textarea
-          id="situation"
-          name="situation"
-          rows={5}
-          required
-          minLength={15}
-          className={input}
-          placeholder="e.g. I have a weekly team meeting on Monday. I have ideas but I stay quiet because I'm afraid they'll sound stupid, and someone else usually says them first."
-        />
+      <div className="text-sm">
+        <button type="button" onClick={() => setOpen(!open)} className="flex items-center gap-1 text-slate-500">
+          Skill: <span className="font-semibold text-brand-700">{chosen?.name ?? "—"}</span>
+          <svg viewBox="0 0 24 24" className={`h-4 w-4 transition ${open ? "rotate-180" : ""}`} fill="none" stroke="currentColor" strokeWidth={2}>
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </button>
+        {open && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {skills.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => {
+                  setSkillId(s.id);
+                  setOpen(false);
+                }}
+                className={`rounded-full px-3 py-1.5 text-xs ${
+                  s.id === skillId ? "bg-brand-600 text-white" : "bg-slate-100 text-slate-600"
+                }`}
+              >
+                {s.name}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {state?.error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>}
-
-      <SubmitButton pendingText="Creating your practical step…">Give me a practical step →</SubmitButton>
+      {state?.error && <p className="px-1 text-sm text-red-600">{state.error}</p>}
+      <SubmitButton pendingText="Your mentor is thinking…">Get my step</SubmitButton>
     </form>
   );
 }

@@ -48,3 +48,26 @@ export async function submitInitialAssessment(userId: string, levels: Record<str
     }
   });
 }
+
+/**
+ * User optionally corrects their own level for some skills (under "Me").
+ * Only skills whose chosen level differs from the current level are reset.
+ */
+export async function setSelfLevels(userId: string, levels: Record<string, number>) {
+  const { levelForScore } = await import("../assessment/levels");
+  const scores = await db.skillScore.findMany({ where: { userId } });
+  for (const sc of scores) {
+    const chosen = levels[sc.skillId];
+    if (!chosen || levelForScore(sc.score).value === chosen) continue;
+    const score = levelToScore(chosen);
+    await db.$transaction([
+      db.skillScore.update({
+        where: { userId_skillId: { userId, skillId: sc.skillId } },
+        data: { score, startingLevel: chosen, difficulty: initialDifficulty(score) },
+      }),
+      db.skillScoreEvent.create({
+        data: { userId, skillId: sc.skillId, delta: score - sc.score, newScore: score, source: "assessment", reason: "Level set by user" },
+      }),
+    ]);
+  }
+}

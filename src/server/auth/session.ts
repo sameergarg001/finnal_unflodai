@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { db } from "@/lib/db";
+import { ensureUserSetup } from "@/server/services/skills";
 
 const COOKIE = "ufa_session";
 const TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
@@ -47,14 +48,9 @@ export async function requireUser() {
   return user;
 }
 
-/** Requires a user who finished onboarding and the initial assessment. */
+/** Requires a logged-in user whose account is set up (done silently on first visit). */
 export async function requireReadyUser() {
   const user = await requireUser();
-  if (!user.profile?.onboardingDone) redirect("/onboarding");
-  const done = await db.assessment.findFirst({
-    where: { userId: user.id, type: "initial", completedAt: { not: null } },
-    select: { id: true },
-  });
-  if (!done) redirect("/assessment");
+  if (!user.profile?.onboardingDone) await ensureUserSetup(user.id);
   return user;
 }

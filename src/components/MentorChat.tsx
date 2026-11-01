@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useRef } from "react";
 import { useFormStatus } from "react-dom";
 import { askMentorAction } from "../../app/actions";
-import { btnPrimary, input } from "./ui";
+import { input } from "./ui";
 
 export interface ChatMessage {
   id: string;
@@ -25,8 +25,15 @@ function Pending() {
 function SendButton() {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" disabled={pending} className={btnPrimary}>
-      {pending ? "…" : "Ask"}
+    <button
+      type="submit"
+      disabled={pending}
+      aria-label="Send"
+      className="flex h-12 w-12 shrink-0 items-center justify-center self-end rounded-full bg-brand-600 text-white active:bg-brand-700 disabled:opacity-50"
+    >
+      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M5 12h14M13 6l6 6-6 6" />
+      </svg>
     </button>
   );
 }
@@ -70,7 +77,7 @@ export function MentorChat({
   return (
     <div>
       {messages.length > 0 && (
-        <div className="mb-4 max-h-96 space-y-3 overflow-y-auto pr-1">
+        <div className="mb-4 space-y-3">
           {messages.map((m) => <Bubble key={m.id} role={m.role} content={m.content} />)}
           <div ref={endRef} />
         </div>
@@ -79,7 +86,7 @@ export function MentorChat({
         <Pending />
         {challengeId && <input type="hidden" name="challengeId" value={challengeId} />}
         <div className="flex gap-2">
-          <textarea name="question" rows={2} required maxLength={1000} placeholder={placeholder} className={`${input} !mt-0`} />
+          <textarea name="question" rows={1} required maxLength={1000} placeholder={placeholder} className={`${input} !mt-0 min-h-12 resize-none`} />
           <SendButton />
         </div>
         {state?.error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>}

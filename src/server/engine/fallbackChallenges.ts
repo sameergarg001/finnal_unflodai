@@ -118,7 +118,31 @@ const LIBRARY: Record<string, Pair> = {
   ],
 };
 
-export function fallbackChallenge(skillSlug: string, difficulty: number): ChallengeDraft {
+/**
+ * Built-in step when the AI is unavailable. Never repeats a recent step: tries
+ * the variant for this difficulty, then the other one, then a "try again"
+ * version that plans for the user's pain point.
+ */
+export function fallbackChallenge(
+  skillSlug: string,
+  difficulty: number,
+  opts: { recentTitles?: string[]; painPoint?: string | null } = {},
+): ChallengeDraft {
   const pair = LIBRARY[skillSlug] ?? LIBRARY.communication;
-  return difficulty <= 2 ? pair[0] : pair[1];
+  const preferred = difficulty <= 2 ? [pair[0], pair[1]] : [pair[1], pair[0]];
+  const recent = new Set(opts.recentTitles ?? []);
+  const fresh = preferred.find((c) => !recent.has(c.title) && !recent.has(`Try again: ${c.title}`));
+  if (fresh) return fresh;
+
+  const base = preferred[0];
+  const pain = opts.painPoint?.trim();
+  return {
+    title: `Try again: ${base.title}`,
+    instructions: pain
+      ? `Last time the hard part was: "${pain}". Do this step again, but plan for that moment first — decide exactly what you will do or say when it happens.\n\n${base.instructions}`
+      : `Do this step again, a little smaller and earlier in the day.\n\n${base.instructions}`,
+    successCriteria: pain ? [...base.successCriteria.slice(0, 2), "Used your plan when the hard moment came"] : base.successCriteria,
+    estimatedMinutes: base.estimatedMinutes,
+    whyThisChallenge: "Repeating a step with a plan for the hard moment is how it starts to feel natural.",
+  };
 }

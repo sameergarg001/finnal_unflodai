@@ -82,3 +82,13 @@ test("insight strength halves every 30 days", () => {
   const then = new Date(now.getTime() - 30 * 86_400_000);
   assert.ok(Math.abs(decayedStrength(1, then, now) - 0.5) < 1e-9);
 });
+
+test("built-in next steps never repeat and target the pain point", async () => {
+  const { fallbackChallenge } = await import("./fallbackChallenges");
+  const first = fallbackChallenge("confidence", 3);
+  const second = fallbackChallenge("confidence", 3, { recentTitles: [first.title] });
+  assert.notEqual(second.title, first.title);
+  const third = fallbackChallenge("confidence", 3, { recentTitles: [first.title, second.title], painPoint: "Freezing when seniors talk" });
+  assert.ok(third.title.startsWith("Try again:"));
+  assert.ok(third.instructions.includes("Freezing when seniors talk"));
+});

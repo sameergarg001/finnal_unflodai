@@ -131,10 +131,11 @@ function fallbackBrief(i: BriefInput): { message: string; focus: string } {
     };
   }
   const back = i.daysSinceLastActivity && i.daysSinceLastActivity > 1 ? " Good to see you back." : "";
-  const pain = i.lastStep.painPoints[0];
+  const rawPain = i.lastStep.painPoints[0]?.trim();
+  const pain = rawPain && !/[.!?]$/.test(rawPain) ? `${rawPain}.` : rawPain;
   return {
     message: `${hello}${back} Last time you worked on ${i.lastStep.skill} ("${i.lastStep.title}").${
-      pain ? ` The sticking point was: ${pain}` : ""
+      pain ? ` The hard part was: ${pain}` : ""
     } Let's keep building on it today.`,
     focus: i.lastStep.nextFocus ?? (i.suggestedSkill ? `Practise ${i.suggestedSkill.name}.` : "Take one small step."),
   };

@@ -77,3 +77,25 @@ export async function setUserSkills(userId: string, specificSlugs: string[]) {
     });
   }
 }
+
+/**
+ * Sets up a new user silently — no questions asked. All core skills are
+ * activated with a neutral starting level (Capable) that adapts with
+ * performance; the user can change skills and levels later under "Me".
+ */
+export async function ensureUserSetup(userId: string) {
+  const [hasSkills, hasAssessment] = await Promise.all([
+    db.userSkill.findFirst({ where: { userId }, select: { userId: true } }),
+    db.assessment.findFirst({ where: { userId, completedAt: { not: null } }, select: { id: true } }),
+  ]);
+  if (!hasSkills) await setUserSkills(userId, []);
+  if (!hasAssessment) {
+    const { submitInitialAssessment } = await import("./assessment");
+    await submitInitialAssessment(userId, {});
+  }
+  await db.userProfile.upsert({
+    where: { userId },
+    create: { userId, onboardingDone: true },
+    update: { onboardingDone: true },
+  });
+}

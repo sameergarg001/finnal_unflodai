@@ -2,7 +2,7 @@ import { levelForScore } from "@/server/assessment/levels";
 import Link from "next/link";
 
 export function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={`rounded-xl border border-slate-200 bg-white p-6 ${className}`}>{children}</div>;
+  return <div className={`rounded-2xl bg-white p-5 shadow-sm ${className}`}>{children}</div>;
 }
 
 export function PageTitle({ title, subtitle }: { title: string; subtitle?: string }) {
@@ -23,11 +23,11 @@ export function ButtonLink({ href, children, variant = "primary" }: { href: stri
 }
 
 export const btnPrimary =
-  "inline-flex items-center justify-center rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60";
+  "inline-flex w-full items-center justify-center rounded-xl bg-brand-600 px-4 py-3.5 text-base font-semibold text-white active:bg-brand-700 disabled:opacity-60";
 export const btnSecondary =
-  "inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50";
+  "inline-flex w-full items-center justify-center rounded-xl bg-slate-100 px-4 py-3.5 text-base font-semibold text-slate-700 active:bg-slate-200";
 export const input =
-  "mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100";
+  "mt-1 block w-full rounded-xl border-0 bg-slate-100 px-4 py-3.5 text-base placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500";
 export const label = "block text-sm font-medium text-slate-700";
 
 export function ScoreBar({ score }: { score: number }) {

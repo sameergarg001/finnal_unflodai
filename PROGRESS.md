@@ -1,7 +1,7 @@
 # UnfoldAI — Progress Notes
 
 > This file is updated after every step. Newest updates are at the top of "Log".
-> Open the app: http://localhost:3000 (computer) · http://10.17.44.231:3000 (phone, same Wi-Fi)
+> Open the app: http://localhost:3000 (computer) · http://10.129.177.231:3000 (phone, same Wi-Fi)
 
 ---
 

@@ -10,6 +10,8 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   devIndicators: false,
+  // Allow opening the dev server from a phone on the same Wi-Fi (e.g. http://10.x.x.x:3000).
+  allowedDevOrigins: ["10.*.*.*", "192.168.*.*", "172.*.*.*"],
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

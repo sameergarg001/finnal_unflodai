@@ -1,4 +1,8 @@
 import Link from "next/link";
+import { Suspense } from "react";
+import { WeeklyReview, WeeklyReviewSkeleton } from "@/components/WeeklyReview";
+import { StreakBadge } from "@/components/MentorBrief";
+import { getStreak } from "@/server/services/mentor";
 import { db } from "@/lib/db";
 import { requireReadyUser } from "@/server/auth/session";
 import { recallInsights } from "@/server/engine/memory";
@@ -9,7 +13,7 @@ export const dynamic = "force-dynamic";
 
 export default async function ProgressPage() {
   const user = await requireReadyUser();
-  const [scores, events, history, insights] = await Promise.all([
+  const [scores, events, history, insights, streak] = await Promise.all([
     db.skillScore.findMany({ where: { userId: user.id }, include: { skill: true } }),
     db.skillScoreEvent.findMany({ where: { userId: user.id }, orderBy: { createdAt: "asc" } }),
     db.challenge.findMany({
@@ -19,6 +23,7 @@ export default async function ProgressPage() {
       take: 20,
     }),
     recallInsights(user.id, "", 8),
+    getStreak(user),
   ]);
 
   const seriesBySkill = new Map<string, number[]>();
@@ -38,7 +43,15 @@ export default async function ProgressPage() {
     <>
       <Nav name={user.name} />
       <main className="mx-auto max-w-5xl px-6 py-10 space-y-8">
-        <PageTitle title="Your progress" subtitle="Scores move slowly on purpose — they change based on evidence from real challenges." />
+        <PageTitle title="Your progress" subtitle="Scores move slowly on purpose — they change based on evidence from real practical steps." />
+        <div className="-mt-4 flex flex-wrap items-center gap-3 text-sm text-slate-600">
+          <StreakBadge current={streak.current} best={streak.best} doneToday={streak.doneToday} />
+          <span>Best streak: {streak.best} day{streak.best === 1 ? "" : "s"}</span>
+        </div>
+
+        <Suspense fallback={<WeeklyReviewSkeleton />}>
+          <WeeklyReview user={user} />
+        </Suspense>
 
         <Card>
           <h2 className="mb-4 font-semibold">Skill growth</h2>

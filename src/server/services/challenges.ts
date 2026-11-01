@@ -10,6 +10,7 @@ import {
   type Analysis,
   type ChallengePromptInput,
 } from "@/ai/prompts";
+import { endOfLocalDay, safeTimeZone } from "@/lib/time";
 import { levelForScore } from "../assessment/levels";
 import { fallbackChallenge } from "../engine/fallbackChallenges";
 import { rememberInsights, recallInsights } from "../engine/memory";
@@ -17,8 +18,9 @@ import { nextDifficulty, updateScore } from "../engine/scoring";
 import { selectNextSkill, type SkillCandidate } from "../engine/selectSkill";
 import { rubricOf } from "./skills";
 
-// A practical step stays open for 3 days — real situations take time to arise.
-const STEP_TTL_MS = 3 * 24 * 60 * 60 * 1000;
+// Daily rhythm: a step is due at the end of the user's local day ("check in tonight"),
+// with a grace period so they can still check in the next morning.
+const GRACE_MS = 12 * 60 * 60 * 1000;
 
 const asStrings = (v: unknown): string[] => (Array.isArray(v) ? v.map(String) : []);
 
@@ -28,7 +30,7 @@ export class SessionError extends Error {}
 
 async function expireOverdue(userId: string) {
   await db.challenge.updateMany({
-    where: { userId, status: "assigned", dueAt: { lt: new Date() } },
+    where: { userId, status: "assigned", dueAt: { lt: new Date(Date.now() - GRACE_MS) } },
     data: { status: "expired" },
   });
 }
@@ -89,6 +91,11 @@ export async function continueSession(userId: string, previousId: string, update
     include: { reflection: { include: { analysis: true } } },
   });
   if (!prev?.reflection) throw new SessionError("Give feedback on this step first");
+  if (!prev.reflection.analysis) {
+    // Background analysis not finished yet — do it now so the next step can target the pain points.
+    await analyzeFeedback(prev.reflection.id);
+    return continueSession(userId, previousId, update);
+  }
   const already = await db.challenge.findFirst({ where: { previousId: prev.id, userId } });
   if (already) return already;
 
@@ -107,7 +114,8 @@ async function createStep(
   userId: string,
   opts: { skillId: string; situation: string; previous: PrevStep | null },
 ) {
-  const [skill, sc, profile] = await Promise.all([
+  const [user, skill, sc, profile] = await Promise.all([
+    db.user.findUniqueOrThrow({ where: { id: userId }, select: { timezone: true } }),
     db.skill.findUniqueOrThrow({ where: { id: opts.skillId } }),
     db.skillScore.findUnique({ where: { userId_skillId: { userId, skillId: opts.skillId } } }),
     db.userProfile.findUnique({ where: { userId } }),
@@ -144,6 +152,7 @@ async function createStep(
       system: CHALLENGE_SYSTEM,
       prompt: challengePrompt(promptInput),
       temperature: 0.7,
+      timeoutMs: 90_000,
     });
     draft = res.data;
     modelVersion = res.modelVersion;
@@ -165,7 +174,7 @@ async function createStep(
       whyThisChallenge: draft.whyThisChallenge,
       estimatedMinutes: draft.estimatedMinutes,
       difficulty,
-      dueAt: new Date(Date.now() + STEP_TTL_MS),
+      dueAt: endOfLocalDay(safeTimeZone(user.timezone)),
       generationContext: JSON.parse(JSON.stringify(promptInput)),
       modelVersion,
     },
@@ -217,13 +226,50 @@ function heuristicAnalysis(r: ReflectionInput): Analysis {
   };
 }
 
-/** Saves feedback, finds pain points, and updates score, level, difficulty and memory. */
-export async function submitReflection(userId: string, challengeId: string, input: ReflectionInput) {
-  const ch = await db.challenge.findFirst({
-    where: { id: challengeId, userId, status: "assigned" },
-    include: { skill: true },
-  });
+/** Step 1 (instant): saves the user's feedback and closes the step. */
+export async function saveFeedback(userId: string, challengeId: string, input: ReflectionInput) {
+  const ch = await db.challenge.findFirst({ where: { id: challengeId, userId, status: "assigned" } });
   if (!ch) throw new SessionError("This step is not open any more");
+  return db.$transaction(async (tx) => {
+    await tx.challenge.update({
+      where: { id: ch.id },
+      data: { status: input.completed ? "completed" : "skipped", completedAt: new Date() },
+    });
+    return tx.reflection.create({
+      data: {
+        challengeId: ch.id,
+        completed: input.completed,
+        selfRating: input.selfRating,
+        perceivedDifficulty: input.perceivedDifficulty,
+        whatHappened: input.whatHappened,
+        whatWasHard: input.whatWasHard || null,
+        whatLearned: input.whatLearned || null,
+      },
+    });
+  });
+}
+
+/**
+ * Step 2 (background): AI finds pain points, then score, level, difficulty and
+ * memory are updated. Falls back to rule-based analysis if the AI fails, so an
+ * analysis always gets created. Safe to call twice (no-op if already analysed).
+ */
+export async function analyzeFeedback(reflectionId: string) {
+  const reflection = await db.reflection.findUnique({
+    where: { id: reflectionId },
+    include: { analysis: true, challenge: { include: { skill: true } } },
+  });
+  if (!reflection || reflection.analysis) return;
+  const ch = reflection.challenge;
+  const userId = ch.userId;
+  const input: ReflectionInput = {
+    completed: reflection.completed,
+    selfRating: reflection.selfRating,
+    perceivedDifficulty: reflection.perceivedDifficulty,
+    whatHappened: reflection.whatHappened,
+    whatWasHard: reflection.whatWasHard ?? undefined,
+    whatLearned: reflection.whatLearned ?? undefined,
+  };
 
   let analysis: Analysis;
   let modelVersion = "heuristic";
@@ -242,6 +288,7 @@ export async function submitReflection(userId: string, challengeId: string, inpu
         reflection: input,
       }),
       temperature: 0.3,
+      timeoutMs: 90_000,
     });
     analysis = res.data;
     modelVersion = res.modelVersion;
@@ -266,64 +313,63 @@ export async function submitReflection(userId: string, challengeId: string, inpu
     recommendation: analysis.difficultyRecommendation,
   });
 
-  await db.$transaction(async (tx) => {
-    await tx.challenge.update({
-      where: { id: ch.id },
-      data: { status: input.completed ? "completed" : "skipped", completedAt: new Date() },
+  try {
+    await db.$transaction(async (tx) => {
+      await tx.aiAnalysis.create({
+        data: {
+          reflectionId: reflection.id,
+          evidence: analysis.evidence,
+          painPoints: analysis.painPoints,
+          nextFocus: analysis.nextFocus,
+          skillSignal: analysis.skillSignal,
+          evidenceStrength: analysis.evidenceStrength,
+          difficultyRecommendation: analysis.difficultyRecommendation,
+          insights: { items: analysis.insights, feedback: analysis.feedback },
+          modelVersion,
+        },
+      });
+      await tx.skillScore.upsert({
+        where: { userId_skillId: { userId, skillId: ch.skillId } },
+        create: {
+          userId,
+          skillId: ch.skillId,
+          score: upd.score,
+          confidence: upd.confidence,
+          difficulty,
+          startingLevel: levelForScore(base.score).value,
+        },
+        update: { score: upd.score, confidence: upd.confidence, difficulty },
+      });
+      await tx.skillScoreEvent.create({
+        data: { userId, skillId: ch.skillId, delta: upd.delta, newScore: upd.score, source: "challenge", sourceId: ch.id, reason: ch.title },
+      });
     });
-    const reflection = await tx.reflection.create({
-      data: {
-        challengeId: ch.id,
-        completed: input.completed,
-        selfRating: input.selfRating,
-        perceivedDifficulty: input.perceivedDifficulty,
-        whatHappened: input.whatHappened,
-        whatWasHard: input.whatWasHard || null,
-        whatLearned: input.whatLearned || null,
-      },
-    });
-    await tx.aiAnalysis.create({
-      data: {
-        reflectionId: reflection.id,
-        evidence: analysis.evidence,
-        painPoints: analysis.painPoints,
-        nextFocus: analysis.nextFocus,
-        skillSignal: analysis.skillSignal,
-        evidenceStrength: analysis.evidenceStrength,
-        difficultyRecommendation: analysis.difficultyRecommendation,
-        insights: { items: analysis.insights, feedback: analysis.feedback },
-        modelVersion,
-      },
-    });
-    await tx.skillScore.upsert({
-      where: { userId_skillId: { userId, skillId: ch.skillId } },
-      create: {
-        userId,
-        skillId: ch.skillId,
-        score: upd.score,
-        confidence: upd.confidence,
-        difficulty,
-        startingLevel: levelForScore(base.score).value,
-      },
-      update: { score: upd.score, confidence: upd.confidence, difficulty },
-    });
-    await tx.skillScoreEvent.create({
-      data: {
-        userId,
-        skillId: ch.skillId,
-        delta: upd.delta,
-        newScore: upd.score,
-        source: "challenge",
-        sourceId: ch.id,
-        reason: ch.title,
-      },
-    });
-  });
+  } catch (e) {
+    // Unique constraint on reflectionId: another worker already analysed it.
+    console.warn("[feedback] analysis already stored:", (e as Error).message.split("\n")[0]);
+    return;
+  }
 
-  // Pain points are also remembered as blockers so future sessions avoid them.
+  // Pain points are also remembered as blockers so future sessions target them.
   await rememberInsights(userId, ch.skillId, [
     ...analysis.insights,
     ...analysis.painPoints.map((text) => ({ kind: "blocker" as const, text })),
   ]);
   return { delta: upd.delta, score: upd.score, feedback: analysis.feedback };
+}
+
+/** Save + analyse in one go (used by tests and scripts). */
+export async function submitReflection(userId: string, challengeId: string, input: ReflectionInput) {
+  const reflection = await saveFeedback(userId, challengeId, input);
+  return (await analyzeFeedback(reflection.id))!;
+}
+
+/** Re-runs analysis for feedback whose background analysis never finished (e.g. server restart). */
+export async function analyzePendingFeedback(userId: string) {
+  const pending = await db.reflection.findMany({
+    where: { challenge: { userId }, analysis: null, createdAt: { lt: new Date(Date.now() - 3 * 60_000) } },
+    select: { id: true },
+    take: 3,
+  });
+  for (const r of pending) await analyzeFeedback(r.id);
 }

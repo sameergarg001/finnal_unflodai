@@ -31,6 +31,9 @@ model User {
   scoreEvents  SkillScoreEvent[]
   challenges   Challenge[]
   insights     UserInsight[]
+  dailyBriefs  DailyBrief[]
+  weeklyReviews WeeklyReview[]
+  mentorMessages MentorMessage[]
 }
 
 model UserProfile {
@@ -232,4 +235,50 @@ model UserInsight {
   skill Skill? @relation(fields: [skillId], references: [id])
 
   @@index([userId, skillId])
+}
+
+// ─── Daily mentor ─────────────────────────────────────────────────────────
+
+// The mentor's personal greeting for one local day (generated once per day).
+model DailyBrief {
+  id           String   @id @default(cuid())
+  userId       String
+  date         String   // YYYY-MM-DD in the user's timezone
+  message      String
+  focus        String
+  skillId      String?  // skill the mentor suggests for today
+  modelVersion String
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+}
+
+// Weekly progress summary from the mentor (refreshed at most once a day).
+model WeeklyReview {
+  id           String   @id @default(cuid())
+  userId       String
+  weekStart    String   // YYYY-MM-DD (Monday) in the user's timezone
+  content      Json     // { summary, wins[], mainPainPoint, nextWeekFocus }
+  modelVersion String
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, weekStart])
+}
+
+// "Ask your mentor" chat. challengeId set = conversation about that step.
+model MentorMessage {
+  id          String   @id @default(cuid())
+  userId      String
+  challengeId String?
+  role        String   // "user" | "mentor"
+  content     String
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, challengeId, createdAt])
 }

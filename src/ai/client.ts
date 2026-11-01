@@ -13,7 +13,7 @@ export function getAiProvider(): AiProvider | null {
     case "gemini": {
       const key = process.env.GEMINI_API_KEY;
       if (!key) return null;
-      cached = createGeminiProvider(key, process.env.GEMINI_MODEL ?? "gemini-2.5-flash");
+      cached = createGeminiProvider(key, process.env.GEMINI_MODEL ?? "gemini-3.8-flash");
       return cached;
     }
     default:
@@ -45,6 +45,14 @@ export async function generateStructured<T>(
     }
   }
   throw new AiError("AI returned invalid structured output", lastError);
+}
+
+/** Plain-text generation (used by the mentor chat). */
+export async function generateText(req: Omit<GenerateRequest, "json">): Promise<{ text: string; modelVersion: string }> {
+  const provider = getAiProvider();
+  if (!provider) throw new AiError("No AI provider configured (set GEMINI_API_KEY)");
+  const { text, modelVersion } = await provider.generate(req);
+  return { text: text.trim(), modelVersion };
 }
 
 function stripFences(text: string): string {

@@ -22,7 +22,8 @@ AI-powered personal skill development. UnfoldAI assesses your current abilities,
 3. UnfoldAI gives you **one practical step** for that situation.
 4. Do it, then **give feedback** on how it went.
 5. UnfoldAI identifies your **pain points** and gives the **next step** targeting them.
-6. Your **level goes up** as your performance improves (Beginner 0–25, Developing 25–45, Capable 45–65, Strong 65–85, Expert 85–100).
+6. Every day your **mentor checks in**: a personal message about last time and today's focus, a 🔥 streak, a weekly review, and an **Ask your mentor** chat that knows your situation.
+7. Your **level goes up** as your performance improves (Beginner 0–25, Developing 25–45, Capable 45–65, Strong 65–85, Expert 85–100).
 
 ## Getting started
 
@@ -59,4 +60,5 @@ prisma/               schema, migrations, seed
 3. Situation-based practical steps ✅
 4. Feedback, pain points, next step, level-ups ✅
 5. Dashboard and progress tracking ✅
-6. Hardening (safety, privacy, more tests) — next
+6. Daily mentor: check-in, daily steps, streak, weekly review, mentor chat ✅
+7. Reminders (email / notifications), hardening — next

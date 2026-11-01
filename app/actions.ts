@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { hashPassword, verifyPassword } from "@/server/auth/password";
@@ -11,10 +12,12 @@ import { setUserSkills } from "@/server/services/skills";
 import {
   SessionError,
   continueSession,
+  analyzeFeedback,
+  saveFeedback,
   skipChallenge,
   startSession,
-  submitReflection,
 } from "@/server/services/challenges";
+import { MentorError, askMentor } from "@/server/services/mentor";
 
 export type FormState = { error?: string } | undefined;
 
@@ -171,11 +174,39 @@ export async function reflectionAction(_: FormState, form: FormData): Promise<Fo
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const { challengeId, completed, ...rest } = parsed.data;
 
+  let reflectionId: string;
   try {
-    await submitReflection(user.id, challengeId, { ...rest, completed: completed === "yes" });
+    reflectionId = (await saveFeedback(user.id, challengeId, { ...rest, completed: completed === "yes" })).id;
   } catch (e) {
     return { error: (e as Error).message };
   }
+  // Feedback is saved instantly; the mentor analyses it in the background
+  // (the AI can be slow) and the step page updates when it's ready.
+  after(() => analyzeFeedback(reflectionId));
   revalidatePath("/dashboard");
   redirect(`/challenge/${challengeId}`);
+}
+
+// ─── Ask your mentor ──────────────────────────────────────────────────────
+
+const askSchema = z.object({
+  question: z.string().trim().min(2, "Type your question").max(1000),
+  challengeId: z.string().optional(),
+});
+
+export async function askMentorAction(_: FormState, form: FormData): Promise<FormState> {
+  const user = await requireUser();
+  const parsed = askSchema.safeParse({
+    question: form.get("question") ?? "",
+    challengeId: form.get("challengeId") || undefined,
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  try {
+    await askMentor(user, parsed.data.challengeId ?? null, parsed.data.question);
+  } catch (e) {
+    if (e instanceof MentorError) return { error: e.message };
+    throw e;
+  }
+  revalidatePath(parsed.data.challengeId ? `/challenge/${parsed.data.challengeId}` : "/dashboard");
+  return {};
 }

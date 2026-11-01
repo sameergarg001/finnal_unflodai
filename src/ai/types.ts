@@ -4,6 +4,8 @@ export interface GenerateRequest {
   /** Ask the provider to return JSON only. */
   json?: boolean;
   temperature?: number;
+  /** Abort after this many ms (default 60s). Background tasks can allow longer. */
+  timeoutMs?: number;
 }
 
 export interface GenerateResult {

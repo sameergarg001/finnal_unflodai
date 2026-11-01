@@ -4,6 +4,9 @@ import { db } from "@/lib/db";
 import { requireReadyUser } from "@/server/auth/session";
 import { levelChange } from "@/server/assessment/levels";
 import { getChallengeForUser } from "@/server/services/challenges";
+import { getMentorMessages } from "@/server/services/mentor";
+import { AutoRefresh } from "@/components/AutoRefresh";
+import { MentorChat } from "@/components/MentorChat";
 import { Nav } from "@/components/Nav";
 import { NextStepForm } from "@/components/NextStepForm";
 import { ReflectionForm } from "@/components/ReflectionForm";
@@ -33,6 +36,8 @@ export default async function StepPage({ params }: { params: Promise<{ id: strin
       ])
     : [null, null];
   const lvl = event ? levelChange(event.newScore - event.delta, event.newScore) : null;
+  const analysing = !!ch.reflection && !analysis;
+  const chat = await getMentorMessages(user.id, ch.id);
 
   return (
     <>
@@ -81,6 +86,18 @@ export default async function StepPage({ params }: { params: Promise<{ id: strin
               <button className={btnSecondary}>Skip — this step doesn&apos;t fit</button>
             </form>
           </Card>
+        )}
+
+        {analysing && (
+          <AutoRefresh>
+            <Card className="text-center">
+              <p className="text-2xl">🧠</p>
+              <h2 className="mt-1 text-lg font-semibold">Thanks — your feedback is saved.</h2>
+              <p className="mt-1 animate-pulse text-sm text-slate-600">
+                Your mentor is analysing it to find your pain points and plan your next step. This page updates automatically.
+              </p>
+            </Card>
+          </AutoRefresh>
         )}
 
         {lvl && lvl.change > 0 && (
@@ -146,7 +163,13 @@ export default async function StepPage({ params }: { params: Promise<{ id: strin
           </Card>
         )}
 
-        {(ch.status === "skipped" || ch.status === "expired") && !analysis && (
+        <Card>
+          <h2 className="text-lg font-semibold">Ask your mentor about this step</h2>
+          <p className="mb-4 text-sm text-slate-600">Stuck, nervous, or not sure what to say? Your mentor knows your situation.</p>
+          <MentorChat messages={chat} challengeId={ch.id} placeholder="e.g. What exactly should I say if they ignore my point?" />
+        </Card>
+
+        {(ch.status === "skipped" || ch.status === "expired") && !ch.reflection && (
           <Card>
             <p className="text-slate-700">This step was {ch.status}.</p>
             <div className="mt-4"><ButtonLink href="/dashboard?new=1">Start a new session</ButtonLink></div>

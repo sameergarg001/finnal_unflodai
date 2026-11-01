@@ -1,0 +1,235 @@
+// UnfoldAI database schema.
+// SQLite for local development; switch `provider` to "postgresql" later.
+// Enum-like fields are stored as String (values documented inline) to stay
+// portable across SQLite and Postgres.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Users ────────────────────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  passwordHash String?
+  timezone     String   @default("UTC")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  profile      UserProfile?
+  sessions     Session[]
+  skills       UserSkill[]
+  assessments  Assessment[]
+  scores       SkillScore[]
+  scoreEvents  SkillScoreEvent[]
+  challenges   Challenge[]
+  insights     UserInsight[]
+}
+
+model UserProfile {
+  userId         String   @id
+  occupation     String?
+  goals          String?
+  context        Json?    // free-form onboarding answers
+  onboardingDone Boolean  @default(false)
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique // sha256 of the cookie token
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ─── Skills ───────────────────────────────────────────────────────────────
+
+model Skill {
+  id          String  @id @default(cuid())
+  slug        String  @unique
+  name        String
+  category    String  // "core" | "specific"
+  description String
+  rubric      Json    // { dimensions: [{ key, label, description }] }
+  sortOrder   Int     @default(0)
+
+  userSkills  UserSkill[]
+  scores      SkillScore[]
+  scoreEvents SkillScoreEvent[]
+  challenges  Challenge[]
+  answers     AssessmentAnswer[]
+  insights    UserInsight[]
+}
+
+// Core skills are always active; specific skills can be toggled.
+// Deselecting sets isActive=false so history is kept.
+model UserSkill {
+  userId     String
+  skillId    String
+  isActive   Boolean   @default(true)
+  selectedAt DateTime  @default(now())
+  removedAt  DateTime?
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill Skill @relation(fields: [skillId], references: [id])
+
+  @@id([userId, skillId])
+}
+
+// ─── Assessment ───────────────────────────────────────────────────────────
+
+model Assessment {
+  id          String    @id @default(cuid())
+  userId      String
+  type        String    // "initial" | "periodic"
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  user    User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  answers AssessmentAnswer[]
+}
+
+model AssessmentAnswer {
+  id           String @id @default(cuid())
+  assessmentId String
+  skillId      String
+  questionId   String
+  answer       Json
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  skill      Skill      @relation(fields: [skillId], references: [id])
+
+  @@unique([assessmentId, questionId])
+}
+
+// ─── Scores ───────────────────────────────────────────────────────────────
+
+// Current state per user+skill.
+model SkillScore {
+  userId     String
+  skillId    String
+  score      Float    // 0–100
+  confidence Float    @default(0.2) // 0–1, grows with evidence
+  difficulty Int      @default(2)   // 1–5, adaptive challenge difficulty
+  startingLevel Int?              // 1–5, level the user chose for themselves at setup
+  updatedAt  DateTime @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill Skill @relation(fields: [skillId], references: [id])
+
+  @@id([userId, skillId])
+}
+
+// Append-only ledger of score changes — drives progress charts and audits.
+model SkillScoreEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  skillId   String
+  delta     Float
+  newScore  Float
+  source    String   // "assessment" | "challenge" | "reassessment"
+  sourceId  String?
+  reason    String?
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill Skill @relation(fields: [skillId], references: [id])
+
+  @@index([userId, skillId, createdAt])
+}
+
+// ─── Challenges ───────────────────────────────────────────────────────────
+
+model Challenge {
+  id                String    @id @default(cuid())
+  userId            String
+  skillId           String
+  situation         String?   // the user's real-life situation this step addresses
+  previousId        String?   // previous step in the same session (null = first step)
+  stepNumber        Int       @default(1)
+  title             String
+  instructions      String
+  successCriteria   Json      // string[]
+  whyThisChallenge  String?
+  difficulty        Int       // 1–5
+  estimatedMinutes  Int
+  status            String    @default("assigned") // "assigned" | "completed" | "skipped" | "expired"
+  assignedAt        DateTime  @default(now())
+  dueAt             DateTime
+  completedAt       DateTime?
+  generationContext Json?     // inputs given to the AI, for audits
+  modelVersion      String?   // e.g. "gemini:gemini-2.5-flash" or "fallback"
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill      Skill       @relation(fields: [skillId], references: [id])
+  reflection Reflection?
+  previous   Challenge?  @relation("ChallengeSteps", fields: [previousId], references: [id], onDelete: SetNull)
+  next       Challenge[] @relation("ChallengeSteps")
+
+  @@index([userId, status])
+  @@index([userId, skillId, assignedAt])
+}
+
+model Reflection {
+  id                  String   @id @default(cuid())
+  challengeId         String   @unique
+  completed           Boolean
+  selfRating          Int      // 1–5
+  perceivedDifficulty Int      // 1–5
+  whatHappened        String
+  whatWasHard         String?
+  whatLearned         String?
+  createdAt           DateTime @default(now())
+
+  challenge Challenge   @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  analysis  AiAnalysis?
+}
+
+model AiAnalysis {
+  id                       String   @id @default(cuid())
+  reflectionId             String   @unique
+  evidence                 Json     // string[]
+  skillSignal              Float    // -1..1, how well the attempt demonstrated the skill
+  evidenceStrength         Float    // 0..1
+  difficultyRecommendation String   // "easier" | "same" | "harder"
+  painPoints               Json     // string[] — specific weaknesses identified from this attempt
+  nextFocus                String?  // what the next step should target
+  insights                 Json     // [{ kind, text }]
+  modelVersion             String
+  createdAt                DateTime @default(now())
+
+  reflection Reflection @relation(fields: [reflectionId], references: [id], onDelete: Cascade)
+}
+
+// ─── Long-term memory ─────────────────────────────────────────────────────
+
+// Compact, deduplicated facts about the user that feed future prompts.
+model UserInsight {
+  id         String   @id @default(cuid())
+  userId     String
+  skillId    String?
+  kind       String   // "strength" | "blocker" | "pattern" | "preference"
+  text       String
+  strength   Float    @default(0.5) // 0–1, decays over time, reinforced on repeat
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill Skill? @relation(fields: [skillId], references: [id])
+
+  @@index([userId, skillId])
+}

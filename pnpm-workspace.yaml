@@ -1,0 +1,6 @@
+# Packages allowed to run install scripts (Prisma downloads its engines; esbuild its binary).
+allowBuilds:
+  "@prisma/client": true
+  "@prisma/engines": true
+  prisma: true
+  esbuild: true

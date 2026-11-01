@@ -19,6 +19,9 @@ model User {
   email        String   @unique
   name         String?
   passwordHash String?
+  googleId     String?  @unique
+  image        String?  // profile picture URL (from Google)
+  age          Int?
   timezone     String   @default("UTC")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -34,14 +37,21 @@ model User {
   dailyBriefs  DailyBrief[]
   weeklyReviews WeeklyReview[]
   mentorMessages MentorMessage[]
+  conversations Conversation[]
+  customSkills  Skill[]
+  reports       Report[]
 }
 
 model UserProfile {
   userId         String   @id
   occupation     String?
   goals          String?
+  about          String?
   context        Json?    // free-form onboarding answers
-  onboardingDone Boolean  @default(false)
+  onboardingDone Boolean  @default(false) // profile step done (or skipped)
+  assessmentDone Boolean  @default(false) // 5 core skills self-rated
+  preferences    Json?    // { theme: "dark"|"light", notifications: { activeChallenge, feedback, reports, inactiveSkill } }
+  notificationsSeenAt DateTime?
   updatedAt      DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -65,10 +75,14 @@ model Skill {
   id          String  @id @default(cuid())
   slug        String  @unique
   name        String
-  category    String  // "core" | "specific"
+  category    String  // "core" | "specific" | "custom"
   description String
-  rubric      Json    // { dimensions: [{ key, label, description }] }
+  rubric      Json    // framework: { dimensions (subskills), criteria, categories, feedbackQuestions, progression }
   sortOrder   Int     @default(0)
+  ownerId     String? // set for user-created custom skills
+
+  owner       User?   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  conversations Conversation[]
 
   userSkills  UserSkill[]
   scores      SkillScore[]
@@ -125,7 +139,9 @@ model AssessmentAnswer {
 model SkillScore {
   userId     String
   skillId    String
-  score      Float    // 0–100
+  score      Float    // 0–100 — UnfoldAI evidence-based score (starts at the self-rating as a baseline)
+  selfScore  Float?   // 0–100 — the user's own self-assessment (not verified)
+  evidenceCount Int   @default(0) // challenge assessments that fed `score`
   confidence Float    @default(0.2) // 0–1, grows with evidence
   difficulty Int      @default(2)   // 1–5, adaptive challenge difficulty
   startingLevel Int?              // 1–5, level the user chose for themselves at setup
@@ -143,10 +159,12 @@ model SkillScoreEvent {
   userId    String
   skillId   String
   delta     Float
+  previousScore Float?
   newScore  Float
-  source    String   // "assessment" | "challenge" | "reassessment"
+  source    String   // "assessment" (self-rating) | "challenge" (evidence)
   sourceId  String?
   reason    String?
+  evidence  Json?    // { completionStatus, evidence[], signal, strength, difficulty, rule }
   createdAt DateTime @default(now())
 
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -161,24 +179,34 @@ model Challenge {
   id                String    @id @default(cuid())
   userId            String
   skillId           String
-  situation         String?   // the user's real-life situation this step addresses
-  previousId        String?   // previous step in the same session (null = first step)
+  conversationId    String?
+  situation         String?   // the user's real-life situation this challenge addresses
+  struggle          String?   // the user's current difficulty, in a sentence
+  previousId        String?   // previous challenge in the same skill journey
   stepNumber        Int       @default(1)
+  subskill          String?   // subskill key from the skill framework
   title             String
+  objective         String?
   instructions      String
+  steps             Json?     // string[] step-by-step actions
+  expectedOutcome   String?
+  example           String?   // optional example / conversation starter
+  feedbackInstructions String?
   successCriteria   Json      // string[]
   whyThisChallenge  String?
   difficulty        Int       // 1–5
-  estimatedMinutes  Int
-  status            String    @default("assigned") // "assigned" | "completed" | "skipped" | "expired"
-  assignedAt        DateTime  @default(now())
-  dueAt             DateTime
+  estimatedMinutes  Int       @default(15)
+  status            String    @default("proposed") // "proposed" | "active" | "done" | "abandoned" | "discarded"
+  assignedAt        DateTime  @default(now())     // created
+  acceptedAt        DateTime?
+  dueAt             DateTime?
   completedAt       DateTime?
   generationContext Json?     // inputs given to the AI, for audits
   modelVersion      String?   // e.g. "gemini:gemini-2.5-flash" or "fallback"
 
   user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   skill      Skill       @relation(fields: [skillId], references: [id])
+  conversation Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
   reflection Reflection?
   previous   Challenge?  @relation("ChallengeSteps", fields: [previousId], references: [id], onDelete: SetNull)
   next       Challenge[] @relation("ChallengeSteps")
@@ -190,9 +218,11 @@ model Challenge {
 model Reflection {
   id                  String   @id @default(cuid())
   challengeId         String   @unique
-  completed           Boolean
-  selfRating          Int      // 1–5
-  perceivedDifficulty Int      // 1–5
+  completed           Boolean  // true for "completed" and "partial"
+  completionStatus    String   @default("completed") // "completed" | "partial" | "unsuccessful" | "not_attempted"
+  responses           Json?    // [{ question, answer }]
+  selfRating          Int?     // 1–5 (optional)
+  perceivedDifficulty Int?     // 1–5 (optional)
   whatHappened        String
   whatWasHard         String?
   whatLearned         String?
@@ -211,7 +241,8 @@ model AiAnalysis {
   difficultyRecommendation String   // "easier" | "same" | "harder"
   painPoints               Json     // string[] — specific weaknesses identified from this attempt
   nextFocus                String?  // what the next step should target
-  insights                 Json     // [{ kind, text }]
+  insights                 Json     // { items: [{ kind, text }], feedback }
+  report                   Json?    // { wentWell[], toImprove[], nextFocus, nextSubskill, overcamePrevious }
   modelVersion             String
   createdAt                DateTime @default(now())
 
@@ -281,4 +312,55 @@ model MentorMessage {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, challengeId, createdAt])
+}
+
+// ─── AI coach conversations (one thread per skill session) ────────────────
+
+model Conversation {
+  id        String   @id @default(cuid())
+  userId    String
+  skillId   String
+  status    String   @default("open")          // "open" | "closed"
+  phase     String   @default("understanding") // "understanding" | "proposed" | "active" | "feedback" | "reviewed"
+  summary   String?  // running summary of the user's situation & barriers
+  context   Json?    // { situation, barriers[], goal } gathered so far
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user       User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill      Skill                 @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  messages   ConversationMessage[]
+  challenges Challenge[]
+
+  @@index([userId, skillId, updatedAt])
+}
+
+model ConversationMessage {
+  id             String   @id @default(cuid())
+  conversationId String
+  role           String   // "user" | "coach"
+  kind           String   @default("text") // "text" | "challenge" | "report" | "event"
+  content        String
+  challengeId    String?
+  createdAt      DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+}
+
+// AI progress reviews ("what you improved / what still needs work / focus next").
+// skillId null = overall review. Regenerated when new evidence exists.
+model Report {
+  id          String   @id @default(cuid())
+  userId      String
+  skillId     String?
+  reportData  Json     // { improved[], stillNeedsWork[], focusNext, basedOn }
+  evidenceKey String   // fingerprint of the evidence it was built from
+  modelVersion String
+  generatedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, skillId, generatedAt])
 }

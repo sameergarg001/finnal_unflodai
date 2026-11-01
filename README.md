@@ -1,31 +1,33 @@
 # UnfoldAI
 
-AI-powered personal skill development. UnfoldAI assesses your current abilities, gives you one small real-world challenge at a time, learns from your reflections, and tracks real skill growth.
+AI-powered personal skill development. UnfoldAI is a personal mentor that understands your situation, gives you **one real-life challenge at a time**, waits for you to try it, analyses how it went, and tracks progress **only when there is evidence**.
 
-- **12 core skills** every user develops (Communication, Confidence, Critical Thinking, …)
-- **12 optional specific skills** users choose (Public Speaking, Negotiation, Leadership, …)
+**Cycle:** understand → identify → challenge → action → feedback → analysis → improvement.
+
+## Features
+
+- **Sign in:** Continue with Google (real OAuth) or email + password.
+- **Onboarding:** short profile (name, age, profession, goal, about; skippable) → self-assessment of the **5 fixed core skills** (Communication, Confidence, Discipline, Problem-solving, Adaptability), 0–100.
+- **Dashboard:** greeting, mentor message, overall development, skill cards (score, progress, challenges done, trend), add skills, recent activity, notifications.
+- **Skills:** each skill has its own development framework (subskills, assessment criteria, challenge categories, feedback questions, progression). Add catalog skills (Networking, Public speaking, Leadership…) or create custom ones; duplicates are detected.
+- **AI coach:** per-skill conversation that knows your history, asks one question at a time, then designs a personalised challenge (difficulty, objective, steps, example, feedback instructions). Options: take it, another one, make it easier, explain how, tell more.
+- **Waiting state:** one active challenge per skill; it waits for you, no matter how long. Ask for help or abandon (never penalised).
+- **Feedback:** completed / partial / unsuccessful / couldn't attempt, then skill-specific questions one at a time (voice input where the browser supports it).
+- **Analysis:** what went well, areas to improve, next focus and subskill, recommended difficulty.
+- **Two scores:** your **self-assessment** and UnfoldAI's **evidence-based assessment**. A backend scoring engine (`src/server/engine/scoring.ts`) decides every change: no increase without specific evidence, no penalties for unsuccessful attempts, max +5 per activity, every change stored with reason, previous score, new score and evidence.
+- **Revise previous progress**, **Reports** (trend, self vs evidence, subskills, completion rate, most improved, repeated weaknesses, consistency), **Profile** (edit, skills, notifications, theme, password, logout, delete account).
 
 ## Tech stack
 
 | Layer | Choice |
 |---|---|
-| App | Next.js 15 (App Router) + TypeScript |
-| Styling | Tailwind CSS 4 |
-| Database | SQLite (local) via Prisma — switchable to Postgres |
-| AI | Google Gemini free tier, behind a provider interface (`src/ai/`) |
-| Validation | Zod (forms and AI output) |
+| App | Next.js 15 (App Router, server actions) + TypeScript, mobile-first PWA |
+| Styling | Tailwind CSS 4, dark design tokens (light theme optional) |
+| Database | SQLite (local) via Prisma, switchable to Postgres |
+| AI | Provider interface in `src/ai/`: Groq (free), Gemini (free), Claude (optional, paid) |
+| Validation | Zod for forms and every AI response |
 
-## How it works
-
-Mobile-first app (installable to the home screen) with four tabs: **Today · Mentor · Progress · Me**.
-
-1. **Sign up** with just email + password — no setup questions. 12 core skills start automatically.
-2. Tell your mentor **what's going on today** (the skill is suggested; change it if you want).
-3. UnfoldAI gives you **one practical step** for that situation.
-4. Do it, then **give feedback** on how it went.
-5. UnfoldAI identifies your **pain points** and gives the **next step** targeting them.
-6. Every day your **mentor checks in**: a personal message about last time and today's focus, a 🔥 streak, a weekly review, and an **Ask your mentor** chat that knows your situation.
-7. Your **level goes up** as your performance improves (Beginner 0–25, Developing 25–45, Capable 45–65, Strong 65–85, Expert 85–100).
+> The original brief suggested Expo + Express + MongoDB. This app keeps the existing Next.js codebase. The same features run in the phone browser and can be installed to the home screen. A native Expo client can be added later on top of the same services.
 
 ## Getting started
 
@@ -33,34 +35,32 @@ Requires Node.js 20+ and pnpm (`corepack enable pnpm`).
 
 ```bash
 pnpm install
-cp .env.example .env        # optional: add GEMINI_API_KEY (free: https://aistudio.google.com/apikey)
-pnpm db:setup               # create the database and seed the 24 skills
+cp .env.example .env        # add GROQ_API_KEY (free) and Google OAuth keys
+pnpm db:setup               # create the database and seed the skills
 pnpm dev                    # http://localhost:3000
 ```
 
-Without an AI key the app still works, using built-in practical steps and rule-based feedback analysis.
+Without an AI key the app still works, using built-in challenges and clearly labelled basic analysis (which can only make small score changes).
 
 - Tests: `pnpm test` · Type check: `pnpm typecheck` · Health: <http://localhost:3000/api/health>
 
 ## Project structure
 
 ```
-app/                  pages and API routes
-src/ai/               AI provider interface, Gemini provider, structured output
-src/lib/              shared utilities (database client)
-src/server/engine/    scoring, level-ups, skill suggestion, memory, fallback steps
-src/server/services/  sessions, feedback analysis, assessment, skills
-src/server/skills/    skill catalog (source of truth for seeding)
-prisma/               schema, migrations, seed
+app/                     pages, server actions (app/actions.ts), Google OAuth routes
+src/ai/                  providers (groq, gemini, anthropic) + prompts & Zod schemas
+src/server/auth/         sessions, passwords, Google OAuth
+src/server/engine/       scoring engine, difficulty, memory, fallback challenges
+src/server/services/     coach & challenges, skills, assessment, progress, notifications
+src/server/skills/       skill catalog + development frameworks (seed source)
+src/components/          UI components
+prisma/                  schema, migrations, seed
 ```
 
-## Roadmap
+## Security
 
-0. Foundation — project setup, schema, AI layer ✅
-1. Auth, onboarding, skill selection ✅
-2. Self-selected levels ✅
-3. Situation-based practical steps ✅
-4. Feedback, pain points, next step, level-ups ✅
-5. Dashboard and progress tracking ✅
-6. Daily mentor: check-in, daily steps, streak, weekly review, mentor chat ✅
-7. Reminders (email / notifications), hardening — next
+- httpOnly session cookies (hashed tokens in the DB); OAuth `state` check; API keys only on the server.
+- Every query is scoped to the signed-in user (ownership checks).
+- Rate limits on login, sign-up, Google sign-in and AI calls. Zod validation everywhere.
+- AI output is validated and never writes to the database directly; the backend decides scores.
+- Account deletion removes all personal data. Security headers are set in `next.config.ts`.

@@ -1,74 +1,50 @@
 # UnfoldAI — Progress Notes
 
 > This file is updated after every step. Newest updates are at the top of "Log".
-> Open the app: http://localhost:3000 (while the dev server is running)
+> Open the app: http://localhost:3000 (computer) · http://10.17.44.231:3000 (phone, same Wi-Fi)
 
 ---
 
 ## 👉 Right now
 
-**Working on:** Nothing right now — mobile app redesign is finished. Waiting for your next instructions.
+**Working on:** Full UnfoldAI spec (Google login, 5 core skills, AI coach, challenges, feedback, evidence scores, reports, profile).
 
-**Status:** ✅ All 10 steps done, tested, saved to GitHub.
-
-**How to use it on your phone:** your phone and computer must be on the same Wi-Fi; open the app in the phone's browser, then "Add to Home Screen". (Or open http://localhost:3000 on the computer and make the browser window narrow.)
+**Status:** ✅ Built and tested. ⏳ Waiting for 2 free keys: **Groq** (AI) and **Google login**.
 
 ---
 
-## Current task: Mobile app + minimal design
+## Current task: full UnfoldAI spec (everything free)
 
-What you asked for:
-- Feel like a mobile app, not a website
-- Clean login — no extra questions
-- Don't ask the user many questions
-- Nothing forced — extra choices hidden in a menu the user can open if they want
-- Very minimal
+Decisions: keep the current Next.js app (not Expo/MongoDB), follow the new onboarding (Google login + profile + rate 5 skills), use only free services.
 
-Plan (✅ done · ⏳ in progress · ⬜ not started):
-
-| # | Step | Status |
+| # | Phase | Status |
 |---|------|--------|
-| 1 | Phone-size layout + bottom tab bar (Today · Mentor · Progress · Me) | ✅ |
-| 2 | Installable on phone home screen (opens full-screen like an app) | ✅ |
-| 3 | Clean login & sign-up: only email + password | ✅ |
-| 4 | Remove forced onboarding + level quiz (12 core skills start automatically) | ✅ |
-| 5 | "Me" tab: optional hidden sections — my skills, my levels, about me, log out | ✅ |
-| 6 | Today screen: mentor message + one text box "What's going on today?" (skill choice hidden in a small menu) | ✅ |
-| 7 | Feedback: just "Did it / Didn't" + "How did it go?" (ratings hidden in "More detail") | ✅ |
-| 8 | Mentor tab: full-screen chat | ✅ |
-| 9 | Progress tab: levels, streak, weekly review (history hidden) | ✅ |
-| 10 | Test everything, save to GitHub | ✅ |
+| 1 | Foundation: dark premium design, Google login (real OAuth), profile, Groq/Gemini/Claude AI providers, security | ✅ |
+| 2 | Onboarding (profile + rate 5 core skills 0–100), dashboard, skill cards, add/search/custom skills | ✅ |
+| 3 | AI coach chat per skill: knows your history, asks one question at a time | ✅ |
+| 4 | Challenges: take it / another / easier / explain / tell more; one active per skill; waits for you | ✅ |
+| 5 | Feedback (4 outcomes + questions one by one + voice), AI analysis, next challenge | ✅ |
+| 6 | Two scores (self vs UnfoldAI evidence), scoring rules, history, reports with charts | ✅ |
+| 7 | Profile (edit, skills, notifications, theme, password, delete account), notifications | ✅ |
+| 8 | Tests (17 pass), full-flow test, screenshots, saved to GitHub | ✅ |
+| 9 | Add free keys: Groq + Google login | ⏳ needs you |
 
 ---
 
-## Known problems
+## Known problems / what's left
 
-- **Free Gemini AI is slow / not answering** (17–119 seconds, then stopped). Probably the free usage limit.
-  The app still works using built-in steps and messages, but it feels less personal.
-  **Fix options:** wait for the daily limit to reset, or add **Groq** (free, answers in 1–3 seconds) — needs a free key from https://console.groq.com/keys
-- Reminders (notifications/email) not built yet — planned for later.
-
----
-
-## What's already built
-
-| Feature | Status |
-|---|---|
-| Sign up / log in | ✅ |
-| 12 core skills + 12 optional specific skills | ✅ |
-| Choose a skill + describe your situation → AI gives one practical step | ✅ |
-| Feedback → AI finds pain points → next step targets them | ✅ |
-| Levels (Beginner → Expert) that go up with performance, "Level up!" message | ✅ |
-| Daily mentor message, daily step, 🔥 streak, weekly review | ✅ |
-| "Ask your mentor" chat | ✅ |
-| Works even when AI is down (built-in fallbacks) | ✅ |
-| Mobile-app design: bottom tabs, minimal screens, installable, nothing forced | ✅ |
-| Automated tests (15) + full flow test | ✅ |
-| Code saved on GitHub: https://github.com/sameergarg001/finnal_unflodai | ✅ |
+- **Gemini free limit is used up for today** (only 20 requests/day). Until a Groq key is added, the coach uses built-in questions and challenges, and the analysis is basic (clearly labelled).
+- **Google login button** shows "not set up yet" until GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET are added. Note: Google only allows `localhost` (or a real https domain) as the return address, so Google login works on the computer, not via the phone's 10.x address.
+- Phone push notifications / email reminders are not built. Notifications appear inside the app (🔔).
+- Native Android/iOS app (Expo) not built. The web app installs to the home screen instead.
 
 ---
 
 ## Log
+
+### 2026-11-02
+- Built the full UnfoldAI spec (see table above). Tested every flow with a script: onboarding, add skill (duplicate blocked), custom skill, coach questions, challenge, "easier", accept, second active challenge blocked, feedback, analysis, score +0.4 with reason, "could not attempt" = no change, abandon, reports, review, notifications. All 15 signed-in screens open without errors. Took iPhone-size screenshots and fixed 4 small layout/text issues.
+
 
 ### 2026-11-01
 - Step 10 ✅ Re-took all screenshots — all 5 problems confirmed fixed. Signed up as a brand-new user in a real browser: only email + password, then straight to Today. 15 automated tests pass. Saved to GitHub.

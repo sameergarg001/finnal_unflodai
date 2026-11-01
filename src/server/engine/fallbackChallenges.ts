@@ -126,9 +126,9 @@ const LIBRARY: Record<string, Pair> = {
 export function fallbackChallenge(
   skillSlug: string,
   difficulty: number,
-  opts: { recentTitles?: string[]; painPoint?: string | null } = {},
+  opts: { recentTitles?: string[]; painPoint?: string | null; skillName?: string } = {},
 ): ChallengeDraft {
-  const pair = LIBRARY[skillSlug] ?? LIBRARY.communication;
+  const pair = LIBRARY[skillSlug] ?? genericPair(opts.skillName ?? "this skill");
   const preferred = difficulty <= 2 ? [pair[0], pair[1]] : [pair[1], pair[0]];
   const recent = new Set(opts.recentTitles ?? []);
   const fresh = preferred.find((c) => !recent.has(c.title) && !recent.has(`Try again: ${c.title}`));
@@ -145,4 +145,12 @@ export function fallbackChallenge(
     estimatedMinutes: base.estimatedMinutes,
     whyThisChallenge: "Repeating a step with a plan for the hard moment is how it starts to feel natural.",
   };
+}
+
+/** Built-in pair for custom skills that have no hand-written challenges. */
+function genericPair(name: string): Pair {
+  return [
+    c(`One small ${name} action`, `Pick one real situation today where you can practise ${name}. Decide in advance exactly what you will do, do it once, and note what happened straight after.`, ["Chose a real situation in advance", "Did the action once", "Wrote down what happened"], 15, `Small, planned actions are the fastest way to build ${name}.`),
+    c(`Stretch your ${name}`, `Choose a situation where ${name} feels harder than usual for you. Plan what you'll do when the hard moment comes, then go through with it.`, ["Picked a situation that felt hard", "Had a plan for the hard moment", "Followed through"], 25, `Practising in harder situations makes ${name} hold up under pressure.`),
+  ];
 }

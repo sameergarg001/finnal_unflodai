@@ -17,7 +17,7 @@ function Pending() {
   return (
     <>
       <Bubble role="user" content={String(data?.get("question") ?? "")} />
-      <p className="animate-pulse text-sm text-slate-500">Your mentor is thinking…</p>
+      <p className="animate-pulse text-sm text-muted">Your coach is thinking…</p>
     </>
   );
 }
@@ -29,7 +29,7 @@ function SendButton() {
       type="submit"
       disabled={pending}
       aria-label="Send"
-      className="flex h-12 w-12 shrink-0 items-center justify-center self-end rounded-full bg-brand-600 text-white active:bg-brand-700 disabled:opacity-50"
+      className="flex h-12 w-12 shrink-0 items-center justify-center self-end rounded-full bg-accent text-white active:scale-95 disabled:opacity-50"
     >
       <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
         <path d="M5 12h14M13 6l6 6-6 6" />
@@ -43,8 +43,8 @@ function Bubble({ role, content }: { role: string; content: string }) {
   return (
     <div className={`flex ${mine ? "justify-end" : "justify-start"}`}>
       <div
-        className={`max-w-[85%] whitespace-pre-line rounded-2xl px-4 py-2 text-sm ${
-          mine ? "bg-brand-600 text-white" : "bg-slate-100 text-slate-800"
+        className={`max-w-[85%] whitespace-pre-line rounded-3xl px-4 py-2.5 text-[15px] leading-relaxed ${
+          mine ? "rounded-br-lg bg-accent text-white" : "rounded-bl-lg border border-line bg-card"
         }`}
       >
         {content}
@@ -89,7 +89,7 @@ export function MentorChat({
           <textarea name="question" rows={1} required maxLength={1000} placeholder={placeholder} className={`${input} !mt-0 min-h-12 resize-none`} />
           <SendButton />
         </div>
-        {state?.error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>}
+        {state?.error && <p className="rounded-2xl bg-danger/10 px-4 py-3 text-sm text-danger">{state.error}</p>}
       </form>
     </div>
   );

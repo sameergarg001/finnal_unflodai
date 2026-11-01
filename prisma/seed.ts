@@ -9,7 +9,7 @@ async function main() {
       name: s.name,
       category: s.category,
       description: s.description,
-      rubric: { dimensions: s.rubric },
+      rubric: { dimensions: s.framework.subskills, ...s.framework },
       sortOrder: i,
     };
     await prisma.skill.upsert({

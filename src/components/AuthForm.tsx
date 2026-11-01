@@ -33,15 +33,15 @@ export function AuthForm({
       />
       <input type="hidden" name="timezone" value={timezone} />
 
-      {state?.error && <p className="px-1 text-sm text-red-600">{state.error}</p>}
+      {state?.error && <p className="px-1 text-sm text-danger">{state.error}</p>}
 
       <div className="pt-2">
-        <SubmitButton pendingText={signup ? "Creating…" : "Logging in…"}>{signup ? "Create account" : "Log in"}</SubmitButton>
+        <SubmitButton pendingText={signup ? "Creating…" : "Signing in…"}>{signup ? "Create account" : "Sign in"}</SubmitButton>
       </div>
 
-      <p className="pt-4 text-center text-sm text-slate-500">
+      <p className="pt-4 text-center text-sm text-muted">
         {signup ? "Have an account? " : "New here? "}
-        <Link href={signup ? "/login" : "/signup"} className="font-semibold text-brand-600">
+        <Link href={signup ? "/login" : "/signup"} className="font-semibold text-accent">
           {signup ? "Log in" : "Create account"}
         </Link>
       </p>

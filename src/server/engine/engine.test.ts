@@ -1,14 +1,20 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { MAX_DELTA, initialDifficulty, nextDifficulty, updateScore } from "./scoring";
+import { MAX_DELTA, evidenceUpdate, initialDifficulty, nextDifficulty } from "./scoring";
 import { selectNextSkill, type SkillCandidate } from "./selectSkill";
 import { decayedStrength } from "./memory";
 import { LEVELS, levelChange, levelForScore, levelProgress, levelToScore } from "../assessment/levels";
 import { ALL_SKILLS } from "../skills/catalog";
 
-test("catalog has 12 core and 12 specific skills", () => {
-  assert.equal(ALL_SKILLS.filter((s) => s.category === "core").length, 12);
-  assert.equal(ALL_SKILLS.filter((s) => s.category === "specific").length, 12);
+test("catalog: five fixed core skills, each with its own framework", () => {
+  const core = ALL_SKILLS.filter((s) => s.category === "core").map((s) => s.name);
+  assert.deepEqual(core, ["Communication", "Confidence", "Discipline", "Problem-solving", "Adaptability"]);
+  assert.equal(new Set(ALL_SKILLS.map((s) => s.slug)).size, ALL_SKILLS.length);
+  for (const s of ALL_SKILLS) {
+    assert.ok(s.framework.subskills.length >= 3, `${s.name} needs subskills`);
+    assert.ok(s.framework.criteria.length >= 1 && s.framework.categories.length >= 1 && s.framework.progression, `${s.name} framework incomplete`);
+  }
+  assert.ok(ALL_SKILLS.find((s) => s.slug === "networking")!.framework.subskills.some((x) => x.label === "Following up"));
 });
 
 test("self-selected levels map to scores inside the matching level band", () => {
@@ -31,36 +37,55 @@ test("level bands: progress and level-up detection", () => {
   assert.equal(levelChange(50, 60).change, 0);
 });
 
-test("updateScore is bounded and moves in the signal direction", () => {
-  const base = { score: 50, confidence: 0, difficulty: 5, evidenceStrength: 1, completed: true };
-  const up = updateScore({ ...base, skillSignal: 1 });
-  const down = updateScore({ ...base, skillSignal: -1 });
+const base = {
+  score: 50,
+  confidence: 0.1,
+  evidenceCount: 0,
+  difficulty: 3,
+  completionStatus: "completed" as const,
+  skillSignal: 1,
+  evidenceStrength: 1,
+  overcamePrevious: false,
+  recentCompletions: 0,
+};
+
+test("evidenceUpdate is bounded and only rises with evidence", () => {
+  const up = evidenceUpdate({ ...base, difficulty: 5 });
   assert.ok(up.delta > 0 && up.delta <= MAX_DELTA);
-  assert.ok(down.delta < 0 && down.delta >= -MAX_DELTA);
-  assert.ok(up.confidence > 0);
+  assert.ok(up.reason.length > 0);
+  assert.ok(evidenceUpdate({ ...base, difficulty: 5, overcamePrevious: true, recentCompletions: 5 }).delta <= MAX_DELTA);
 });
 
-test("updateScore: vague evidence and high confidence dampen change", () => {
-  const strong = updateScore({ score: 50, confidence: 0.1, difficulty: 3, skillSignal: 1, evidenceStrength: 1, completed: true });
-  const vague = updateScore({ score: 50, confidence: 0.1, difficulty: 3, skillSignal: 1, evidenceStrength: 0.2, completed: true });
-  const confident = updateScore({ score: 50, confidence: 0.9, difficulty: 3, skillSignal: 1, evidenceStrength: 1, completed: true });
-  assert.ok(vague.delta < strong.delta);
-  assert.ok(confident.delta < strong.delta);
+test("evidenceUpdate: a claim without specific evidence never raises the score", () => {
+  assert.equal(evidenceUpdate({ ...base, evidenceStrength: 0.2 }).delta, 0);
 });
 
-test("updateScore clamps to 0..100", () => {
-  assert.equal(updateScore({ score: 99, confidence: 0, difficulty: 5, skillSignal: 1, evidenceStrength: 1, completed: true }).score, 100);
-  assert.equal(updateScore({ score: 1, confidence: 0, difficulty: 5, skillSignal: -1, evidenceStrength: 1, completed: false }).score, 0);
+test("evidenceUpdate: unsuccessful or skipped attempts are never penalised", () => {
+  assert.equal(evidenceUpdate({ ...base, completionStatus: "not_attempted" }).delta, 0);
+  assert.ok(evidenceUpdate({ ...base, completionStatus: "unsuccessful", skillSignal: -1 }).delta >= 0);
+  assert.equal(evidenceUpdate({ ...base, skillSignal: -0.8 }).delta, 0);
 });
 
-test("difficulty adapts", () => {
+test("evidenceUpdate: partial < completed, established scores move slower, harder counts more", () => {
+  const full = evidenceUpdate(base).delta;
+  assert.ok(evidenceUpdate({ ...base, completionStatus: "partial" }).delta < full);
+  assert.ok(evidenceUpdate({ ...base, evidenceCount: 20 }).delta < full);
+  assert.ok(evidenceUpdate({ ...base, difficulty: 1 }).delta < evidenceUpdate({ ...base, difficulty: 5 }).delta);
+});
+
+test("evidenceUpdate clamps to 100", () => {
+  assert.ok(evidenceUpdate({ ...base, score: 99.5, difficulty: 5 }).score <= 100);
+});
+
+test("difficulty adapts one level at a time", () => {
   assert.equal(initialDifficulty(20), 1);
   assert.equal(initialDifficulty(80), 4);
-  assert.equal(nextDifficulty(3, { completed: false, perceivedDifficulty: 3, recommendation: "harder" }), 2);
-  assert.equal(nextDifficulty(3, { completed: true, perceivedDifficulty: 1, recommendation: "same" }), 4);
-  assert.equal(nextDifficulty(3, { completed: true, perceivedDifficulty: 3, recommendation: "harder" }), 4);
-  assert.equal(nextDifficulty(5, { completed: true, perceivedDifficulty: 1, recommendation: "harder" }), 5);
-  assert.equal(nextDifficulty(1, { completed: false, perceivedDifficulty: 5, recommendation: "easier" }), 1);
+  assert.equal(nextDifficulty(3, { completionStatus: "not_attempted", recommendation: "harder" }), 2);
+  assert.equal(nextDifficulty(3, { completionStatus: "unsuccessful", recommendation: "same" }), 2);
+  assert.equal(nextDifficulty(3, { completionStatus: "partial", recommendation: "harder" }), 3);
+  assert.equal(nextDifficulty(3, { completionStatus: "completed", recommendation: "harder" }), 4);
+  assert.equal(nextDifficulty(5, { completionStatus: "completed", recommendation: "harder" }), 5);
+  assert.equal(nextDifficulty(1, { completionStatus: "unsuccessful", recommendation: "easier" }), 1);
 });
 
 test("selectNextSkill prefers weak, stale skills and never repeats the last one", () => {

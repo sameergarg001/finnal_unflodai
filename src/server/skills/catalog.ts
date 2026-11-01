@@ -1,12 +1,23 @@
-// Canonical skill catalog. Seeded into the `Skill` table.
-// Each skill has 3 rubric dimensions used by assessment scoring and AI analysis.
+// Canonical skill catalog, seeded into the `Skill` table.
+// Every skill has its own development framework: subskills, assessment
+// criteria, challenge categories, feedback questions and progression logic.
+// Five core skills are fixed for every user; the rest can be added.
 
-export type SkillCategory = "core" | "specific";
+export type SkillCategory = "core" | "specific" | "custom";
 
 // `type` (not `interface`) so it is assignable to Prisma's JSON input type.
-export type RubricDimension = {
-  key: string;
-  label: string;
+export type Subskill = { key: string; label: string };
+
+export type SkillFramework = {
+  subskills: Subskill[];
+  /** What the coach looks for when judging an attempt. */
+  criteria: string[];
+  /** Kinds of real-life challenges for this skill. */
+  categories: string[];
+  /** Questions asked after a challenge (falls back to DEFAULT_FEEDBACK_QUESTIONS). */
+  feedbackQuestions?: string[];
+  /** How challenges should progress as the user improves. */
+  progression: string;
 };
 
 export interface SkillDefinition {
@@ -14,183 +25,405 @@ export interface SkillDefinition {
   name: string;
   category: SkillCategory;
   description: string;
-  rubric: RubricDimension[];
+  framework: SkillFramework;
 }
 
-const d = (key: string, label: string): RubricDimension => ({ key, label });
+/** Difficulty levels shared by every framework (1–5). */
+export const DIFFICULTY_LEVELS = [
+  { value: 1, name: "Gentle", description: "Tiny, low-pressure first step" },
+  { value: 2, name: "Easy", description: "Short and familiar situation" },
+  { value: 3, name: "Moderate", description: "Some discomfort, clear structure" },
+  { value: 4, name: "Stretch", description: "Unfamiliar or higher-stakes situation" },
+  { value: 5, name: "Bold", description: "Hard, sustained or public — still safe" },
+] as const;
+
+export const DEFAULT_FEEDBACK_QUESTIONS = [
+  "What happened? Walk me through it.",
+  "How did you feel before starting?",
+  "What was difficult?",
+  "What went well?",
+  "What would you do differently next time?",
+];
+
+const sub = (...labels: string[]): Subskill[] =>
+  labels.map((label) => ({ key: label.toLowerCase().replace(/[^a-z]+/g, "_").replace(/^_|_$/g, ""), label }));
 
 export const CORE_SKILLS: SkillDefinition[] = [
   {
     slug: "communication",
     name: "Communication",
     category: "core",
-    description: "Expressing ideas clearly and adapting the message to the listener.",
-    rubric: [d("clarity", "Clarity"), d("adaptation", "Audience adaptation"), d("listening", "Two-way exchange")],
+    description: "Expressing ideas clearly, listening well and adapting your message to the person in front of you.",
+    framework: {
+      subskills: sub("Verbal clarity", "Listening", "Asking questions", "Expressing ideas", "Non-verbal communication", "Conflict communication"),
+      criteria: [
+        "Said the main point clearly and early",
+        "Listened and responded to what the other person actually said",
+        "Adjusted tone, words or body language to the situation",
+      ],
+      categories: ["Explain an idea", "Ask for something", "Listen and summarise", "Difficult conversation", "Speak up in a group"],
+      feedbackQuestions: [
+        "What happened in the conversation?",
+        "How did you feel before you spoke?",
+        "Did the other person understand you? How could you tell?",
+        "What went well?",
+        "What would you say differently next time?",
+      ],
+      progression:
+        "Start with one clear sentence in a low-stakes chat, then two-way conversations, then explaining complex ideas, then disagreement and conflict conversations.",
+    },
   },
   {
     slug: "confidence",
     name: "Confidence",
     category: "core",
-    description: "Acting despite uncertainty and trusting your own judgement.",
-    rubric: [d("initiative", "Taking initiative"), d("self_trust", "Self-trust"), d("recovery", "Recovering from setbacks")],
-  },
-  {
-    slug: "critical-thinking",
-    name: "Critical Thinking",
-    category: "core",
-    description: "Questioning assumptions and evaluating evidence before concluding.",
-    rubric: [d("assumptions", "Questioning assumptions"), d("evidence", "Weighing evidence"), d("perspectives", "Considering perspectives")],
-  },
-  {
-    slug: "problem-solving",
-    name: "Problem Solving",
-    category: "core",
-    description: "Breaking problems down and working systematically toward solutions.",
-    rubric: [d("framing", "Framing the problem"), d("options", "Generating options"), d("execution", "Testing and iterating")],
-  },
-  {
-    slug: "decision-making",
-    name: "Decision Making",
-    category: "core",
-    description: "Choosing well and in time, with incomplete information.",
-    rubric: [d("criteria", "Clear criteria"), d("timeliness", "Deciding in time"), d("ownership", "Owning outcomes")],
-  },
-  {
-    slug: "emotional-intelligence",
-    name: "Emotional Intelligence",
-    category: "core",
-    description: "Recognising and managing your emotions and responding to others'.",
-    rubric: [d("self_awareness", "Self-awareness"), d("regulation", "Self-regulation"), d("empathy", "Empathy")],
+    description: "Acting despite uncertainty, speaking up and trusting your own judgement.",
+    framework: {
+      subskills: sub("Reducing hesitation", "Self-expression", "Decision-making", "Handling rejection", "Speaking up", "Taking initiative"),
+      criteria: [
+        "Acted within a short time instead of waiting for the 'perfect moment'",
+        "Expressed their own view or need directly",
+        "Stayed steady or recovered after an uncomfortable moment",
+      ],
+      categories: ["Speak first", "Share an opinion", "Make a quick decision", "Ask despite possible 'no'", "Take the lead"],
+      feedbackQuestions: [
+        "What did you do, and what happened?",
+        "How nervous were you before starting (and what were you thinking)?",
+        "What was the hardest moment?",
+        "What went better than you expected?",
+        "What would you do differently next time?",
+      ],
+      progression:
+        "Begin with tiny actions that have almost no risk of rejection, then actions where a 'no' is possible, then visible or public actions, then leading others.",
+    },
   },
   {
     slug: "self-discipline",
-    name: "Self-Discipline",
+    name: "Discipline",
     category: "core",
-    description: "Doing what matters consistently, even when you don't feel like it.",
-    rubric: [d("consistency", "Consistency"), d("impulse_control", "Resisting distractions"), d("follow_through", "Follow-through")],
+    description: "Doing what matters consistently — even when you don't feel like it.",
+    framework: {
+      subskills: sub("Consistency", "Routine building", "Time management", "Distraction management", "Goal execution", "Self-control"),
+      criteria: [
+        "Did the planned action at the planned time",
+        "Handled distractions or low motivation with a concrete tactic",
+        "Repeated the behaviour across days, not just once",
+      ],
+      categories: ["Single focused block", "Daily habit streak", "Remove a distraction", "Finish a postponed task", "Plan and execute a day"],
+      feedbackQuestions: [
+        "Did you do it as planned? What happened?",
+        "How did you feel before starting?",
+        "What pulled you off track (if anything)?",
+        "What helped you keep going?",
+        "What will you change to make it easier next time?",
+      ],
+      progression:
+        "Start with one short focused block, then the same action on consecutive days, then longer blocks with distractions removed, then full routines tied to a goal.",
+    },
   },
   {
-    slug: "time-management",
-    name: "Time Management",
+    slug: "problem-solving",
+    name: "Problem-solving",
     category: "core",
-    description: "Prioritising and planning so time goes to what matters most.",
-    rubric: [d("prioritisation", "Prioritisation"), d("planning", "Planning"), d("estimation", "Realistic estimation")],
+    description: "Identifying the real problem, breaking it down and working systematically toward a solution.",
+    framework: {
+      subskills: sub("Identifying problems", "Critical thinking", "Breaking down problems", "Decision-making", "Evaluating alternatives", "Learning from mistakes"),
+      criteria: [
+        "Defined the actual problem in their own words",
+        "Considered more than one option before choosing",
+        "Tried a solution and reflected on the result",
+      ],
+      categories: ["Define the problem", "Break it into parts", "Compare options", "Test a small fix", "Post-mortem a mistake"],
+      feedbackQuestions: [
+        "What problem did you work on, and what did you do?",
+        "How did you feel when you started on it?",
+        "Where did you get stuck?",
+        "What worked?",
+        "What would you try differently next time?",
+      ],
+      progression:
+        "Begin with defining and splitting one everyday problem, then comparing options with clear criteria, then testing solutions, then reviewing failures to improve the method.",
+    },
   },
   {
     slug: "adaptability",
     name: "Adaptability",
     category: "core",
-    description: "Adjusting quickly and calmly when plans or circumstances change.",
-    rubric: [d("openness", "Openness to change"), d("composure", "Composure"), d("adjustment", "Adjusting approach")],
-  },
-  {
-    slug: "learning-ability",
-    name: "Learning Ability",
-    category: "core",
-    description: "Picking up new knowledge and skills efficiently and applying them.",
-    rubric: [d("curiosity", "Curiosity"), d("method", "Learning method"), d("application", "Applying what was learned")],
-  },
-  {
-    slug: "creativity",
-    name: "Creativity",
-    category: "core",
-    description: "Generating original ideas and new approaches to familiar things.",
-    rubric: [d("fluency", "Idea generation"), d("originality", "Originality"), d("experimentation", "Willingness to experiment")],
-  },
-  {
-    slug: "relationship-building",
-    name: "Relationship Building",
-    category: "core",
-    description: "Building trust and maintaining meaningful connections with people.",
-    rubric: [d("trust", "Building trust"), d("maintenance", "Staying in touch"), d("reciprocity", "Giving value")],
+    description: "Adjusting quickly and calmly when plans, people or circumstances change.",
+    framework: {
+      subskills: sub("Openness to change", "Composure under pressure", "Adjusting approach", "Learning new ways", "Handling uncertainty"),
+      criteria: [
+        "Stayed calm or recovered quickly when something changed",
+        "Changed their approach instead of repeating what wasn't working",
+        "Looked for something useful in the new situation",
+      ],
+      categories: ["Change a routine on purpose", "Try an unfamiliar method", "Respond to an unexpected change", "Work with a different style of person"],
+      progression:
+        "Start with small, chosen changes to routines, then unfamiliar methods, then unexpected changes in real situations, then high-pressure uncertainty.",
+    },
   },
 ];
 
 export const SPECIFIC_SKILLS: SkillDefinition[] = [
   {
-    slug: "public-speaking",
-    name: "Public Speaking",
-    category: "specific",
-    description: "Speaking to groups with structure, presence and impact.",
-    rubric: [d("structure", "Structure"), d("delivery", "Delivery"), d("presence", "Stage presence")],
-  },
-  {
     slug: "networking",
     name: "Networking",
     category: "specific",
-    description: "Starting and growing professional relationships.",
-    rubric: [d("outreach", "Outreach"), d("conversation", "Conversation quality"), d("follow_up", "Follow-up")],
+    description: "Starting conversations with new people and growing them into real professional relationships.",
+    framework: {
+      subskills: sub(
+        "Starting conversations",
+        "Self-introduction",
+        "Active listening",
+        "Asking meaningful questions",
+        "Building relationships",
+        "Following up",
+        "Maintaining connections",
+      ),
+      criteria: [
+        "Initiated contact with someone new",
+        "Kept the conversation going with genuine questions",
+        "Created a reason or plan to stay in touch",
+      ],
+      categories: ["Approach one new person", "Introduce yourself", "Two-minute conversation", "Follow up after meeting", "Reconnect with an old contact"],
+      feedbackQuestions: [
+        "Did you approach someone? What happened?",
+        "How did you feel before approaching them?",
+        "What was difficult in the conversation?",
+        "What went well?",
+        "What would you do differently next time?",
+      ],
+      progression:
+        "Start with saying hello and introducing yourself, then two-minute conversations with an open question, then follow-ups, then maintaining a network over time.",
+    },
+  },
+  {
+    slug: "public-speaking",
+    name: "Public speaking",
+    category: "specific",
+    description: "Speaking to groups with structure, presence and impact.",
+    framework: {
+      subskills: sub("Structure", "Delivery", "Managing nerves", "Stage presence", "Handling questions"),
+      criteria: ["Had a clear opening, point and close", "Spoke at a steady pace with eye contact", "Kept going despite nerves or mistakes"],
+      categories: ["Speak up in a meeting", "Short prepared talk", "Impromptu answer", "Present to a group"],
+      progression: "From one comment in a small group, to a prepared 1-minute talk, to longer talks, to Q&A and larger audiences.",
+    },
   },
   {
     slug: "leadership",
     name: "Leadership",
     category: "specific",
     description: "Setting direction and helping others perform at their best.",
-    rubric: [d("vision", "Setting direction"), d("influence", "Influence"), d("accountability", "Accountability")],
+    framework: {
+      subskills: sub("Setting direction", "Influence", "Delegation", "Giving feedback", "Accountability"),
+      criteria: ["Took responsibility for an outcome", "Got others to act without forcing them", "Gave clear, useful direction or feedback"],
+      categories: ["Lead a small task", "Give feedback", "Delegate", "Make a call for the group"],
+      progression: "From leading one small task, to coordinating a few people, to giving feedback, to owning group outcomes.",
+    },
   },
   {
     slug: "negotiation",
     name: "Negotiation",
     category: "specific",
     description: "Reaching agreements that serve your interests and preserve relationships.",
-    rubric: [d("preparation", "Preparation"), d("asking", "Asking for what you want"), d("value_creation", "Creating value")],
+    framework: {
+      subskills: sub("Preparation", "Asking for what you want", "Understanding the other side", "Creating value", "Holding your ground"),
+      criteria: ["Asked clearly for a specific outcome", "Explored what the other side needed", "Did not give in at the first pushback"],
+      categories: ["Ask for a small discount or favour", "Negotiate a plan with someone", "Counter an offer"],
+      progression: "From small low-stakes asks, to two-sided trade-offs, to negotiations with real stakes.",
+    },
+  },
+  {
+    slug: "time-management",
+    name: "Time management",
+    category: "specific",
+    description: "Prioritising and planning so your time goes to what matters most.",
+    framework: {
+      subskills: sub("Prioritisation", "Planning", "Realistic estimation", "Saying no", "Protecting focus time"),
+      criteria: ["Chose the most important task first", "Estimated and tracked time honestly", "Protected planned time from interruptions"],
+      categories: ["Plan tomorrow", "Time-box a task", "Cut or delegate a task", "Weekly review"],
+      progression: "From planning one day, to estimating and comparing with reality, to protecting focus time, to weekly planning.",
+    },
+  },
+  {
+    slug: "interview-skills",
+    name: "Interview skills",
+    category: "specific",
+    description: "Presenting your experience clearly and confidently in interviews.",
+    framework: {
+      subskills: sub("Preparation", "Answer structure", "Telling your story", "Composure", "Asking good questions"),
+      criteria: ["Answered with a clear structure (situation, action, result)", "Gave concrete examples", "Stayed composed under tough questions"],
+      categories: ["Prepare one story", "Mock answer out loud", "Mock interview with a friend", "Real interview reflection"],
+      progression: "From preparing stories, to practising out loud, to mock interviews, to real interviews.",
+    },
+  },
+  {
+    slug: "critical-thinking",
+    name: "Critical thinking",
+    category: "specific",
+    description: "Questioning assumptions and weighing evidence before concluding.",
+    framework: {
+      subskills: sub("Questioning assumptions", "Weighing evidence", "Considering perspectives", "Spotting bias", "Reasoning clearly"),
+      criteria: ["Named an assumption and tested it", "Looked for evidence on both sides", "Changed or confirmed a view for a stated reason"],
+      categories: ["Fact-check a claim", "Argue the other side", "Decision with pros and cons"],
+      progression: "From checking one claim, to weighing two sides, to examining your own biases in real decisions.",
+    },
+  },
+  {
+    slug: "emotional-intelligence",
+    name: "Emotional intelligence",
+    category: "specific",
+    description: "Recognising and managing your emotions and responding well to others'.",
+    framework: {
+      subskills: sub("Self-awareness", "Self-regulation", "Empathy", "Reading others", "Responding with care"),
+      criteria: ["Named their own emotion in the moment", "Paused before reacting", "Responded to the other person's feelings, not just their words"],
+      categories: ["Name the emotion", "Pause before reacting", "Empathy check-in", "Repair after a reaction"],
+      progression: "From noticing emotions, to pausing in real situations, to responding to others' emotions, to repairing conflicts.",
+    },
+  },
+  {
+    slug: "decision-making",
+    name: "Decision making",
+    category: "specific",
+    description: "Choosing well and in time, with incomplete information.",
+    framework: {
+      subskills: sub("Clear criteria", "Deciding in time", "Owning outcomes"),
+      criteria: ["Set criteria before choosing", "Decided within the time they set", "Reviewed the outcome honestly"],
+      categories: ["Decide a pending choice", "Time-boxed decision", "Decision review"],
+      progression: "From small daily decisions, to postponed decisions, to bigger decisions with reviews.",
+    },
+  },
+  {
+    slug: "relationship-building",
+    name: "Relationship building",
+    category: "specific",
+    description: "Building trust and maintaining meaningful connections with people.",
+    framework: {
+      subskills: sub("Building trust", "Staying in touch", "Giving value"),
+      criteria: ["Reached out without needing something", "Kept a promise or follow-up", "Showed genuine interest"],
+      categories: ["Check in on someone", "Help without being asked", "Deepen one relationship"],
+      progression: "From small check-ins, to regular contact, to deeper, two-way relationships.",
+    },
+  },
+  {
+    slug: "creativity",
+    name: "Creativity",
+    category: "specific",
+    description: "Generating original ideas and new approaches to familiar things.",
+    framework: {
+      subskills: sub("Idea generation", "Originality", "Willingness to experiment"),
+      criteria: ["Produced several ideas before judging", "Tried something new", "Shared or tested an idea"],
+      categories: ["Ten ideas", "Remix something", "Prototype an idea"],
+      progression: "From generating ideas, to trying them, to sharing and refining them.",
+    },
+  },
+  {
+    slug: "learning-ability",
+    name: "Learning ability",
+    category: "specific",
+    description: "Picking up new knowledge and skills efficiently and applying them.",
+    framework: {
+      subskills: sub("Curiosity", "Learning method", "Applying what was learned"),
+      criteria: ["Used an active learning method", "Applied it the same day", "Explained it to someone"],
+      categories: ["Learn and apply", "Teach back", "Practice drill"],
+      progression: "From short learning sessions, to applying them, to teaching others.",
+    },
   },
   {
     slug: "sales",
     name: "Sales",
     category: "specific",
     description: "Understanding needs and persuading people of real value.",
-    rubric: [d("discovery", "Discovering needs"), d("pitch", "Value pitch"), d("closing", "Closing")],
+    framework: {
+      subskills: sub("Discovering needs", "Value pitch", "Handling objections", "Closing"),
+      criteria: ["Asked about needs before pitching", "Linked the offer to their need", "Asked for a decision"],
+      categories: ["Discovery questions", "Pitch practice", "Ask for the sale"],
+      progression: "From discovery conversations, to pitching, to handling objections and closing.",
+    },
   },
   {
     slug: "entrepreneurship",
     name: "Entrepreneurship",
     category: "specific",
     description: "Spotting opportunities and turning ideas into action.",
-    rubric: [d("opportunity", "Spotting opportunities"), d("validation", "Validating ideas"), d("bias_to_action", "Bias to action")],
+    framework: {
+      subskills: sub("Spotting opportunities", "Validating ideas", "Bias to action"),
+      criteria: ["Talked to real potential users", "Tested an assumption cheaply", "Shipped something small"],
+      categories: ["Customer conversation", "Smallest test", "Ship it"],
+      progression: "From noticing problems, to talking to users, to small experiments and launches.",
+    },
   },
   {
     slug: "team-management",
-    name: "Team Management",
+    name: "Team management",
     category: "specific",
     description: "Organising, delegating to and developing a team.",
-    rubric: [d("delegation", "Delegation"), d("feedback", "Giving feedback"), d("coordination", "Coordination")],
-  },
-  {
-    slug: "interview-skills",
-    name: "Interview Skills",
-    category: "specific",
-    description: "Presenting your experience compellingly in interviews.",
-    rubric: [d("preparation", "Preparation"), d("storytelling", "Answer structure"), d("composure", "Composure")],
+    framework: {
+      subskills: sub("Delegation", "Giving feedback", "Coordination"),
+      criteria: ["Delegated with clear outcomes", "Gave specific feedback", "Kept the team aligned"],
+      categories: ["Delegate a task", "One-to-one", "Team check-in"],
+      progression: "From delegating one task, to regular feedback, to coordinating the whole team.",
+    },
   },
   {
     slug: "personal-branding",
-    name: "Personal Branding",
+    name: "Personal branding",
     category: "specific",
     description: "Shaping how others perceive your expertise and values.",
-    rubric: [d("positioning", "Positioning"), d("visibility", "Visibility"), d("consistency", "Consistency")],
+    framework: {
+      subskills: sub("Positioning", "Visibility", "Consistency"),
+      criteria: ["Clearly stated what they stand for", "Shared work publicly", "Did it consistently"],
+      categories: ["Write your one-liner", "Share a post", "Weekly visibility habit"],
+      progression: "From defining your message, to sharing once, to sharing consistently.",
+    },
   },
   {
     slug: "storytelling",
     name: "Storytelling",
     category: "specific",
     description: "Using narrative to make ideas memorable and persuasive.",
-    rubric: [d("structure", "Narrative structure"), d("detail", "Vivid detail"), d("purpose", "Clear point")],
+    framework: {
+      subskills: sub("Narrative structure", "Vivid detail", "Clear point"),
+      criteria: ["Story had a beginning, tension and end", "Used concrete detail", "Story made a clear point"],
+      categories: ["Tell a short story", "Story in a pitch", "Story to a group"],
+      progression: "From one short story to a friend, to stories in work situations, to stories for groups.",
+    },
   },
   {
     slug: "active-listening",
-    name: "Active Listening",
+    name: "Active listening",
     category: "specific",
     description: "Fully understanding others before responding.",
-    rubric: [d("attention", "Attention"), d("questions", "Clarifying questions"), d("reflection", "Reflecting back")],
+    framework: {
+      subskills: sub("Attention", "Clarifying questions", "Reflecting back"),
+      criteria: ["Did not interrupt", "Asked a clarifying question", "Summarised what they heard"],
+      categories: ["Listen without interrupting", "Summarise back", "Deep conversation"],
+      progression: "From one attentive conversation, to summarising back, to listening in hard conversations.",
+    },
   },
   {
     slug: "conflict-resolution",
-    name: "Conflict Resolution",
+    name: "Conflict resolution",
     category: "specific",
     description: "Turning disagreements into constructive outcomes.",
-    rubric: [d("de_escalation", "De-escalation"), d("understanding", "Understanding positions"), d("resolution", "Finding resolution")],
+    framework: {
+      subskills: sub("De-escalation", "Understanding positions", "Finding resolution"),
+      criteria: ["Stayed calm and lowered tension", "Understood the other side's real concern", "Agreed on a next step"],
+      categories: ["Calm a small disagreement", "Understand the other side", "Resolve an open issue"],
+      progression: "From small disagreements, to understanding positions, to resolving real conflicts.",
+    },
   },
 ];
 
 export const ALL_SKILLS: SkillDefinition[] = [...CORE_SKILLS, ...SPECIFIC_SKILLS];
+
+/** Framework for a user-created custom skill. */
+export function customFramework(name: string, subskillLabels: string[]): SkillFramework {
+  const labels = subskillLabels.map((s) => s.trim()).filter(Boolean).slice(0, 7);
+  return {
+    subskills: sub(...(labels.length ? labels : ["Fundamentals", "Practice in real situations", "Consistency", "Handling setbacks"])),
+    criteria: [`Took a concrete action that practises ${name}`, "Reflected honestly on the result", "Built on previous attempts"],
+    categories: ["First small attempt", "Repeat in a new situation", "Stretch attempt"],
+    progression: `Start with small, low-risk actions that practise ${name}, then repeat them in real situations, then take on harder, higher-stakes versions.`,
+  };
+}

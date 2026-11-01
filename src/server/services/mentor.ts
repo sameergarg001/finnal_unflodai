@@ -55,7 +55,7 @@ export async function getOrCreateDailyBrief(user: UserLite) {
   const [streak, suggestedId, open, last, levelEvents] = await Promise.all([
     getStreak(user),
     suggestSkillId(user.id),
-    db.challenge.findFirst({ where: { userId: user.id, status: "assigned" }, include: { skill: true }, orderBy: { assignedAt: "desc" } }),
+    db.challenge.findFirst({ where: { userId: user.id, status: "active" }, include: { skill: true }, orderBy: { acceptedAt: "desc" } }),
     db.challenge.findFirst({
       where: { userId: user.id, reflection: { isNot: null } },
       include: { skill: true, reflection: { include: { analysis: true } } },
@@ -126,7 +126,7 @@ function fallbackBrief(i: BriefInput): { message: string; focus: string } {
   const hello = `Good ${i.partOfDay}, ${i.firstName}.`;
   if (!i.lastStep) {
     return {
-      message: `${hello} Welcome to UnfoldAI. Each day, pick one skill, tell me about a real situation, and I'll give you one small practical step. Tonight, tell me how it went and I'll shape the next one around it.`,
+      message: `${hello} Welcome to UnfoldAI. Open any skill, tell me what's going on, and I'll give you one practical challenge. When you've tried it, tell me how it went and I'll shape the next one around it.`,
       focus: i.suggestedSkill ? `Start with ${i.suggestedSkill.name}.` : "Pick one skill and a real situation.",
     };
   }
@@ -169,7 +169,7 @@ export async function getOrCreateWeeklyReview(user: UserLite): Promise<{ content
       skill: s.skill.name,
       title: s.title,
       completed: s.reflection!.completed,
-      selfRating: s.reflection!.selfRating,
+      outcome: s.reflection!.completionStatus,
       whatHappened: s.reflection!.whatHappened,
       whatWasHard: s.reflection!.whatWasHard,
       painPoints: asStrings(s.reflection!.analysis?.painPoints),
@@ -235,7 +235,7 @@ export async function askMentor(user: UserLite, challengeId: string | null, ques
         include: { skill: true, reflection: { include: { analysis: true } } },
       })
     : await db.challenge.findFirst({
-        where: { userId: user.id },
+        where: { userId: user.id, status: { in: ["active", "done", "abandoned"] } },
         include: { skill: true, reflection: { include: { analysis: true } } },
         orderBy: { assignedAt: "desc" },
       });

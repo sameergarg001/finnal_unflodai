@@ -7,44 +7,51 @@ export function AppShell({
   back,
   right,
   children,
+  tabs = true,
+  header,
 }: {
-  title: string;
+  title?: string;
   back?: string;
   right?: React.ReactNode;
   children: React.ReactNode;
+  tabs?: boolean;
+  /** Custom header content (replaces the title bar). */
+  header?: React.ReactNode;
 }) {
   return (
-    <div className="mx-auto min-h-dvh max-w-md bg-slate-50">
-      <header className="sticky top-0 z-10 border-b border-slate-100 bg-slate-50/90 pt-[env(safe-area-inset-top)] backdrop-blur">
-        <div className="flex h-14 items-center gap-2 px-4">
-          {back && (
-            <Link href={back} aria-label="Back" className="-ml-2 rounded-full p-2 text-slate-500 active:bg-slate-200">
-              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-                <path d="M15 18l-6-6 6-6" />
-              </svg>
-            </Link>
-          )}
-          <h1 className="flex-1 truncate text-lg font-bold">{title}</h1>
-          {right}
-        </div>
+    <div className="mx-auto min-h-dvh max-w-md bg-bg">
+      <header className="sticky top-0 z-10 bg-bg/85 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
+        {header ?? (
+          <div className="flex h-14 items-center gap-2 px-4">
+            {back && (
+              <Link href={back} aria-label="Back" className="-ml-2 rounded-full p-2 text-muted active:bg-card-2">
+                <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+                  <path d="M15 18l-6-6 6-6" />
+                </svg>
+              </Link>
+            )}
+            <h1 className="flex-1 truncate text-lg font-bold">{title}</h1>
+            {right}
+          </div>
+        )}
       </header>
-      <main className="space-y-4 px-4 pb-28 pt-4">{children}</main>
-      <TabBar />
+      <main className={`animate-enter space-y-4 px-4 pt-2 ${tabs ? "pb-28" : "pb-10"}`}>{children}</main>
+      {tabs && <TabBar />}
     </div>
   );
 }
 
 /** Collapsed-by-default section — optional things live here, never forced. */
-export function More({ label, children, open }: { label: string; children: React.ReactNode; open?: boolean }) {
+export function More({ label, children, open }: { label: React.ReactNode; children: React.ReactNode; open?: boolean }) {
   return (
-    <details open={open} className="group rounded-2xl bg-white">
-      <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3.5 text-sm font-medium text-slate-700 [&::-webkit-details-marker]:hidden">
+    <details open={open} className="group rounded-3xl border border-line bg-card">
+      <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between px-5 py-4 text-[15px] font-medium [&::-webkit-details-marker]:hidden">
         {label}
-        <svg viewBox="0 0 24 24" className="h-4 w-4 text-slate-400 transition group-open:rotate-180" fill="none" stroke="currentColor" strokeWidth={2}>
+        <svg viewBox="0 0 24 24" className="h-4 w-4 text-muted transition group-open:rotate-180" fill="none" stroke="currentColor" strokeWidth={2}>
           <path d="M6 9l6 6 6-6" />
         </svg>
       </summary>
-      <div className="px-4 pb-4">{children}</div>
+      <div className="px-5 pb-5">{children}</div>
     </details>
   );
 }

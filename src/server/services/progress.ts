@@ -3,7 +3,7 @@ import { generateStructured } from "@/ai/client";
 import { REVIEW_SYSTEM, reviewPrompt, reviewSchema, type ProgressReview } from "@/ai/prompts";
 import { localDateKey, safeTimeZone, weekStartKey, addDays } from "@/lib/time";
 import { recallInsights } from "../engine/memory";
-import { frameworkOf } from "./skills";
+import { frameworkOf, teacherOf } from "./skills";
 import type { AnalysisReport } from "./challenges";
 
 // Everything here is computed from real stored activity. Nothing is invented:
@@ -21,6 +21,7 @@ export interface SkillCardData {
   attempted: number;
   trend: number[];
   hasActive: boolean;
+  teacher: { name: string; emoji: string };
 }
 
 export async function getSkillCards(userId: string): Promise<SkillCardData[]> {
@@ -52,6 +53,7 @@ export async function getSkillCards(userId: string): Promise<SkillCardData[]> {
       attempted,
       trend: ev.length ? [ev[0].previousScore ?? ev[0].newScore, ...ev.map((e) => e.newScore)] : [],
       hasActive: activeSet.has(skill.id),
+      teacher: { name: teacherOf(skill).name, emoji: teacherOf(skill).emoji },
     };
   });
 }

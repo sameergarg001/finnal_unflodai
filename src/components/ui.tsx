@@ -143,3 +143,16 @@ export function Notice({ tone = "info", children }: { tone?: "info" | "success" 
 }
 
 export const DIFFICULTY_NAMES = ["", "Gentle", "Easy", "Moderate", "Stretch", "Bold"];
+
+/** A skill teacher's avatar (emoji on the brand gradient). */
+export function TeacherAvatar({ emoji, size = 40 }: { emoji: string; size?: number }) {
+  return (
+    <span
+      className="flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent/80 to-accent-2/80 shadow-md shadow-accent/20"
+      style={{ width: size, height: size, fontSize: size * 0.5 }}
+      aria-hidden
+    >
+      {emoji}
+    </span>
+  );
+}

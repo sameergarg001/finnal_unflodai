@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import { requireReadyUser } from "@/server/auth/session";
 import { getConversationForUser } from "@/server/services/challenges";
 import { toChallengeView } from "@/server/views";
+import { teacherOf } from "@/server/services/skills";
+import { TeacherAvatar } from "@/components/ui";
 import { AppShell } from "@/components/AppShell";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { CoachChat } from "@/components/CoachChat";
@@ -22,6 +24,7 @@ export default async function CoachPage({ params }: { params: Promise<{ id: stri
   const conv = await getConversationForUser(user.id, id);
   if (!conv) notFound();
 
+  const teacher = teacherOf(conv.skill);
   const challenges = Object.fromEntries(conv.challenges.map((c) => [c.id, toChallengeView(c, conv.skill)]));
   const chat = (
     <CoachChat
@@ -41,10 +44,10 @@ export default async function CoachPage({ params }: { params: Promise<{ id: stri
           <a href={`/skills/${conv.skillId}`} aria-label="Back" className="-ml-2 rounded-full p-2 text-muted active:bg-card-2">
             <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M15 18l-6-6 6-6" /></svg>
           </a>
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-accent to-accent-2 text-sm font-bold text-white">U</div>
+          <TeacherAvatar emoji={teacher.emoji} size={38} />
           <div className="min-w-0">
-            <p className="truncate font-bold leading-tight">{conv.skill.name} coach</p>
-            <p className="text-[11px] text-success">● knows your history</p>
+            <p className="truncate font-bold leading-tight">{teacher.name}</p>
+            <p className="truncate text-[11px] text-muted"><span className="text-success">●</span> {teacher.title} · knows your history</p>
           </div>
         </div>
       }

@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { suggestSkillId } from "./challenges";
+import { teacherOf } from "./skills";
 
 /**
  * The single most useful thing for the user to do right now — so the home
@@ -7,9 +8,9 @@ import { suggestSkillId } from "./challenges";
  */
 export type NextStep =
   | { kind: "feedback"; challengeId: string; title: string; skill: string; extraActive: number }
-  | { kind: "continue"; conversationId: string; skill: string; proposedTitle: string | null }
+  | { kind: "continue"; conversationId: string; skill: string; proposedTitle: string | null; teacher: string; emoji: string }
   | { kind: "next"; challengeId: string; skill: string; nextFocus: string | null }
-  | { kind: "start"; skillId: string; skill: string; reason: string };
+  | { kind: "start"; skillId: string; skill: string; reason: string; teacher: string; emoji: string };
 
 const WEEK = 7 * 86_400_000;
 
@@ -27,7 +28,8 @@ export async function getNextStep(userId: string): Promise<NextStep | null> {
   });
   // Only worth resuming if the user actually said something in it.
   if (open && (await db.conversationMessage.count({ where: { conversationId: open.id, role: "user" } })) > 0) {
-    return { kind: "continue", conversationId: open.id, skill: open.skill.name, proposedTitle: open.challenges[0]?.title ?? null };
+    const t = teacherOf(open.skill);
+    return { kind: "continue", conversationId: open.id, skill: open.skill.name, proposedTitle: open.challenges[0]?.title ?? null, teacher: t.name, emoji: t.emoji };
   }
 
   const lastDone = await db.challenge.findFirst({
@@ -47,10 +49,13 @@ export async function getNextStep(userId: string): Promise<NextStep | null> {
     db.skillScore.findUnique({ where: { userId_skillId: { userId, skillId } } }),
   ]);
   const value = sc ? (sc.evidenceCount > 0 ? sc.score : sc.selfScore) : null;
+  const t = teacherOf(skill);
   return {
     kind: "start",
     skillId,
     skill: skill.name,
+    teacher: t.name,
+    emoji: t.emoji,
     reason: value != null ? `It's one of your lower-rated skills (${Math.round(value)}/100) — small wins here show up fast.` : "A good place to begin.",
   };
 }

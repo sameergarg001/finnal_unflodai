@@ -2,11 +2,11 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireReadyUser } from "@/server/auth/session";
 import { getMentorMessages } from "@/server/services/mentor";
+import { teacherOf } from "@/server/services/skills";
 import { AppShell } from "@/components/AppShell";
 import { ActionForm } from "@/components/ActionForm";
 import { MentorChat } from "@/components/MentorChat";
-import { SubmitButton } from "@/components/SubmitButton";
-import { Card, SectionTitle } from "@/components/ui";
+import { Card, SectionTitle, TeacherAvatar } from "@/components/ui";
 import { startCoachAction } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -47,10 +47,10 @@ export default async function CoachTabPage() {
         <Card className="divide-y divide-line !py-1">
           {sessions.map((c) => (
             <Link key={c.id} href={`/coach/${c.id}`} className="flex items-center gap-3 py-3.5">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent to-accent-2 font-bold text-white">{c.skill.name[0]}</span>
+              <TeacherAvatar emoji={teacherOf(c.skill).emoji} size={42} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="font-semibold">{c.skill.name}</p>
+                  <p className="font-semibold">{teacherOf(c.skill).name} <span className="font-normal text-muted">· {c.skill.name}</span></p>
                   <span className="shrink-0 text-[11px] text-muted">{PHASE[c.phase] ?? c.phase}</span>
                 </div>
                 <p className="truncate text-sm text-muted">{c.messages[0]?.content ?? "Start talking"}</p>
@@ -62,15 +62,24 @@ export default async function CoachTabPage() {
         <p className="px-1 text-sm text-muted">No sessions yet. Pick a skill to start — your coach asks 2–3 quick questions, then gives you a challenge.</p>
       )}
 
-      <SectionTitle>Start with a skill</SectionTitle>
-      <div className="flex flex-wrap gap-2">
-        {skills.map(({ skill }) => (
-          <ActionForm key={skill.id} action={startCoachAction}>
-            <input type="hidden" name="skillId" value={skill.id} />
-            <SubmitButton variant="secondary" pendingText="…" className="!min-h-10 !w-auto !rounded-full !px-4 !py-2 !text-sm">{skill.name}</SubmitButton>
-          </ActionForm>
-        ))}
+      <SectionTitle>Your teachers</SectionTitle>
+      <p className="-mt-1 px-1 text-sm text-muted">Every skill has its own expert. Tap one to start.</p>
+      <div className="grid grid-cols-2 gap-3">
+        {skills.map(({ skill }) => {
+          const t = teacherOf(skill);
+          return (
+            <ActionForm key={skill.id} action={startCoachAction}>
+              <input type="hidden" name="skillId" value={skill.id} />
+              <button className="flex w-full flex-col items-center rounded-3xl border border-line bg-card p-4 text-center transition active:scale-[0.97]">
+                <TeacherAvatar emoji={t.emoji} size={52} />
+                <span className="mt-2 font-bold">{t.name}</span>
+                <span className="text-xs text-muted">{skill.name}</span>
+              </button>
+            </ActionForm>
+          );
+        })}
       </div>
+      <p className="px-1 text-center text-xs text-muted">Want another teacher? <Link href="/skills/add" className="font-semibold text-accent">Add a skill</Link></p>
 
       <SectionTitle>Ask anything</SectionTitle>
       <p className="-mt-1 px-1 text-sm text-muted">Quick questions about any situation — your coach knows your skills and challenges.</p>

@@ -17,6 +17,13 @@ test("catalog: five fixed core skills, each with its own framework", () => {
   assert.ok(ALL_SKILLS.find((s) => s.slug === "networking")!.framework.subskills.some((x) => x.label === "Following up"));
 });
 
+test("catalog: every skill has its own expert teacher", () => {
+  const names = ALL_SKILLS.map((s) => s.framework.teacher?.name);
+  assert.ok(names.every(Boolean), "missing teacher");
+  assert.equal(new Set(names).size, ALL_SKILLS.length, "teacher names must be unique");
+  for (const s of ALL_SKILLS) assert.ok(s.framework.teacher!.style.length > 20 && s.framework.teacher!.emoji);
+});
+
 test("self-selected levels map to scores inside the matching level band", () => {
   for (const l of LEVELS) assert.equal(levelForScore(levelToScore(l.value)).name, l.name);
   assert.equal(levelToScore(undefined), 55);

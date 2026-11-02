@@ -24,7 +24,7 @@ import { fallbackChallenge } from "../engine/fallbackChallenges";
 import { recallInsights, rememberInsights } from "../engine/memory";
 import { evidenceUpdate, nextDifficulty, type CompletionStatus } from "../engine/scoring";
 import { selectNextSkill, type SkillCandidate } from "../engine/selectSkill";
-import { frameworkOf, getSkillForUser } from "./skills";
+import { frameworkOf, getSkillForUser, teacherOf } from "./skills";
 
 // Challenge lifecycle: proposed → active (accepted) → done (feedback given)
 //                      proposed → discarded (user asked for another)
@@ -66,8 +66,10 @@ export async function buildSkillContext(userId: string, skillId: string): Promis
     recallInsights(userId, skillId, 8),
   ]);
   const fw = frameworkOf(skill);
+  const teacher = teacherOf(skill);
   const skillInsights = insights.filter((i) => i.skillId === skillId || i.skillId === null);
   return {
+    teacher: { name: teacher.name, title: teacher.title, style: teacher.style },
     firstName: firstName(user.name),
     profile: { age: user.age, profession: user.profile?.occupation, goal: user.profile?.goals, about: user.profile?.about },
     skill: {
@@ -156,16 +158,19 @@ async function addMessage(conversationId: string, role: "user" | "coach", conten
   await db.conversation.update({ where: { id: conversationId }, data: { updatedAt: new Date() } });
 }
 
-/** Opening line: knows the user's history so they never repeat themselves. */
-function greeting(ctx: SkillContext): string {
+/** Opening line from the skill's teacher: knows the user's history so they never repeat themselves. */
+function greeting(ctx: SkillContext, firstTime: boolean): string {
+  const t = ctx.teacher;
   const last = ctx.previousChallenges.find((c) => c.status === "done");
   if (last?.nextFocus) {
-    return `Welcome back, ${ctx.firstName}. Last time you did "${last.title}". The next focus we found was: ${last.nextFocus.replace(/\.$/, "")}. Is that still what you want to work on, or is something else going on?`;
+    return `Welcome back, ${ctx.firstName}. Last time you did "${last.title}", and the next focus we found was: ${last.nextFocus.replace(/\.$/, "")}. Still want to work on that, or is something else going on?`;
   }
   if (ctx.weaknesses[0]) {
-    return `Hi ${ctx.firstName}. Earlier you mentioned: "${ctx.weaknesses[0]}". Do you want to work on that in ${ctx.skill.name}, or something else?`;
+    return `Hi ${ctx.firstName}, ${t.name} here. Earlier you mentioned: "${ctx.weaknesses[0]}". Shall we work on that, or something else?`;
   }
-  return `Hi ${ctx.firstName}! What would you like to improve in ${ctx.skill.name.toLowerCase()}?`;
+  return firstTime
+    ? `Hi ${ctx.firstName}! I'm ${t.name}, your ${t.title.toLowerCase()}. What would you like to improve in ${ctx.skill.name.toLowerCase()}?`
+    : `Hi ${ctx.firstName}! What would you like to work on in ${ctx.skill.name.toLowerCase()} today?`;
 }
 
 /**
@@ -197,8 +202,9 @@ export async function startCoachSession(userId: string, skillId: string, opts: {
   await db.challenge.updateMany({ where: { userId, skillId, status: "proposed" }, data: { status: "discarded" } });
 
   const ctx = await buildSkillContext(userId, skillId);
+  const firstTime = (await db.conversation.count({ where: { userId, skillId } })) === 0;
   const conv = await db.conversation.create({ data: { userId, skillId } });
-  await addMessage(conv.id, "coach", greeting(ctx));
+  await addMessage(conv.id, "coach", greeting(ctx, firstTime));
   if (opts.firstMessage) await sendCoachMessage(userId, conv.id, opts.firstMessage);
   return { conversationId: conv.id, activeChallengeId: null };
 }

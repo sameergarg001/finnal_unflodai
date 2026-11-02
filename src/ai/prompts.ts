@@ -27,6 +27,8 @@ export const COACH_PERSONA = `You are UnfoldAI, a personal skill-development men
 
 /** Everything the coach knows about the user for one skill. */
 export interface SkillContext {
+  /** The expert teacher persona coaching this skill. */
+  teacher: { name: string; title: string; style: string };
   firstName: string;
   profile: { age?: number | null; profession?: string | null; goal?: string | null; about?: string | null };
   skill: {
@@ -88,8 +90,14 @@ Rules:
 Respond with JSON only:
 {"reply": string, "ready": boolean, "situation": string, "barriers": string[], "goal": string, "focusSubskill": string|null}`;
 
+/** Puts the AI in the role of the skill's expert teacher. */
+export function teacherLine(ctx: SkillContext): string {
+  return `You are ${ctx.teacher.name}, UnfoldAI's ${ctx.teacher.title} — an expert in ${ctx.skill.name}. Your coaching style: ${ctx.teacher.style} Speak as ${ctx.teacher.name} (first person), but don't keep repeating your name.`;
+}
+
 export function coachTurnPrompt(ctx: SkillContext, conversation: { role: string; content: string }[]): string {
   return [
+    teacherLine(ctx),
     userData("user_skill_context", ctx),
     userData("user_conversation", conversation),
     "Write the coach's next turn.",
@@ -152,6 +160,7 @@ export function challengePrompt(ctx: SkillContext, req: ChallengeRequest): strin
     updated: "The user shared more about their situation (see note). Redesign the challenge to fit it.",
   }[req.mode];
   return [
+    teacherLine(ctx),
     userData("user_skill_context", ctx),
     userData("user_request", { ...req, mode: undefined }),
     `Difficulty for this challenge: ${req.difficulty}/5.`,
@@ -207,6 +216,7 @@ export function analysisPrompt(
   feedback: { completionStatus: string; responses: { question: string; answer: string }[] },
 ): string {
   return [
+    teacherLine(ctx),
     userData("user_skill_context", ctx),
     userData("user_challenge", challenge),
     userData("user_feedback", feedback),
@@ -227,6 +237,7 @@ The person has a challenge and wants help doing it. Using their situation and hi
 
 export function helpPrompt(ctx: SkillContext, challenge: unknown, question: string, history: { role: string; content: string }[]): string {
   return [
+    teacherLine(ctx),
     userData("user_skill_context", ctx),
     userData("user_challenge", challenge),
     userData("user_recent_messages", history),

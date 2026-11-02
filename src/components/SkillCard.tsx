@@ -10,8 +10,9 @@ export function SkillCard({ s }: { s: SkillCardData }) {
     <Link href={`/skills/${s.id}`} className="block rounded-3xl border border-line bg-card p-4 transition active:scale-[0.98]">
       <div className="flex items-start justify-between gap-2">
         <p className="font-semibold leading-tight">{s.name}</p>
-        {s.hasActive && <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-accent-2" title="Active challenge" />}
+        <span className="text-lg leading-none" title={`Teacher: ${s.teacher.name}`} aria-hidden>{s.teacher.emoji}</span>
       </div>
+      {s.hasActive && <p className="mt-1 text-[11px] font-semibold text-accent-2">● challenge waiting</p>}
       <p className="mt-2 text-2xl font-bold tabular-nums">
         {value == null ? "—" : Math.round(value)}
         <span className="text-sm font-medium text-muted">/100</span>

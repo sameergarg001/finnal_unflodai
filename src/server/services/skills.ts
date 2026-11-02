@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import type { Prisma } from "@prisma/client";
-import { DEFAULT_FEEDBACK_QUESTIONS, customFramework, type SkillFramework } from "../skills/catalog";
+import { DEFAULT_FEEDBACK_QUESTIONS, customFramework, customTeacher, type SkillFramework, type Teacher } from "../skills/catalog";
 import { initialDifficulty } from "../engine/scoring";
 
 /** Baseline for an added skill the user didn't rate (shown as "not yet assessed"). */
@@ -20,6 +20,12 @@ export async function getActiveSkills(userId: string) {
 export function rubricOf(skill: { rubric: Prisma.JsonValue }): { key: string; label: string }[] {
   const r = skill.rubric as { dimensions?: { key: string; label: string }[] } | null;
   return r?.dimensions ?? [];
+}
+
+/** The expert teacher for a skill (falls back to a generic coach for that skill). */
+export function teacherOf(skill: { name: string; rubric: Prisma.JsonValue }): Teacher {
+  const r = (skill.rubric ?? {}) as Partial<SkillFramework>;
+  return r.teacher ?? customTeacher(skill.name);
 }
 
 export function frameworkOf(skill: { rubric: Prisma.JsonValue }): SkillFramework & { feedbackQuestions: string[] } {

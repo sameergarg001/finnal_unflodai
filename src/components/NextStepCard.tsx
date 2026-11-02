@@ -23,7 +23,8 @@ export function NextStepCard({ step }: { step: NextStep }) {
       )}
       {step.kind === "continue" && (
         <>
-          <p className="mt-2 text-lg font-bold leading-snug">Continue with your {step.skill} coach</p>
+          <p className="mt-2 text-lg font-bold leading-snug">{step.emoji} Continue with {step.teacher}</p>
+          <p className="text-sm text-muted">your {step.skill} teacher</p>
           <p className="mt-1 text-sm text-muted">{step.proposedTitle ? `A challenge is waiting for your answer: “${step.proposedTitle}”` : "You were in the middle of a conversation."}</p>
           <div className="mt-4"><Link href={`/coach/${step.conversationId}`} className={btnPrimary}>Continue →</Link></div>
         </>
@@ -40,7 +41,7 @@ export function NextStepCard({ step }: { step: NextStep }) {
       )}
       {step.kind === "start" && (
         <>
-          <p className="mt-2 text-lg font-bold leading-snug">Start with {step.skill}</p>
+          <p className="mt-2 text-lg font-bold leading-snug">{step.emoji} Start {step.skill} with {step.teacher}</p>
           <p className="mt-1 text-sm text-muted">{step.reason}</p>
           <ActionForm action={startCoachAction} className="mt-4">
             <input type="hidden" name="skillId" value={step.skillId} />

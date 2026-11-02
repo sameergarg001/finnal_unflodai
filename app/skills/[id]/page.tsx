@@ -2,14 +2,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireReadyUser } from "@/server/auth/session";
-import { frameworkOf, getSkillForUser } from "@/server/services/skills";
+import { frameworkOf, getSkillForUser, teacherOf } from "@/server/services/skills";
 import { getSkillHistory } from "@/server/services/progress";
 import { labelStatus } from "@/server/services/challenges";
 import { AppShell, More } from "@/components/AppShell";
 import { ActionForm } from "@/components/ActionForm";
 import { SubmitButton } from "@/components/SubmitButton";
 import { SelfScoreSlider } from "@/components/SelfScoreSlider";
-import { Card, DIFFICULTY_NAMES, EmptyState, Notice, Pill, ProgressBar, SERIES, SectionTitle, Sparkline, btnSecondary, input } from "@/components/ui";
+import { Card, DIFFICULTY_NAMES, EmptyState, Notice, Pill, ProgressBar, SERIES, SectionTitle, Sparkline, TeacherAvatar, btnSecondary, input } from "@/components/ui";
 import { removeSkillAction, startCoachAction, updateSelfScoreAction } from "../../actions";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +28,7 @@ export default async function SkillPage({ params, searchParams }: { params: Prom
     db.conversation.findFirst({ where: { userId: user.id, skillId: id, status: "open", phase: { in: ["understanding", "proposed"] } }, orderBy: { updatedAt: "desc" } }),
   ]);
   const fw = frameworkOf(skill);
+  const teacher = teacherOf(skill);
   const active = history.challenges.find((c) => c.status === "active");
   const assessed = (sc?.evidenceCount ?? 0) > 0;
   const trendEvents = history.events.filter((e) => e.source === "challenge").reverse();
@@ -42,6 +43,15 @@ export default async function SkillPage({ params, searchParams }: { params: Prom
     <AppShell title={skill.name} back="/dashboard">
       {added && <Notice tone="success">✓ {skill.name} added to your dashboard</Notice>}
       {!us?.isActive && <Notice>This skill isn&apos;t on your dashboard. Add it again from “Add skill” to start a session.</Notice>}
+
+      <div className="flex items-center gap-3.5 rounded-3xl border border-accent/30 bg-gradient-to-br from-accent/15 to-card p-4">
+        <TeacherAvatar emoji={teacher.emoji} size={52} />
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-accent">Your teacher</p>
+          <p className="font-bold">{teacher.name} <span className="font-normal text-muted">· {teacher.title}</span></p>
+          <p className="text-sm text-muted">{teacher.tagline}</p>
+        </div>
+      </div>
 
       <Card>
         <p className="text-sm leading-relaxed text-muted">{skill.description}</p>
@@ -66,7 +76,7 @@ export default async function SkillPage({ params, searchParams }: { params: Prom
           <ActionForm action={startCoachAction}>
             <input type="hidden" name="skillId" value={skill.id} />
             {!openConv && <input type="hidden" name="fresh" value="1" />}
-            <SubmitButton pendingText="Opening your coach…">✨ {openConv ? "Continue improving" : "Start improving"}</SubmitButton>
+            <SubmitButton pendingText={`Opening ${teacher.name}…`}>✨ {openConv ? `Continue with ${teacher.name}` : `Start improving with ${teacher.name}`}</SubmitButton>
           </ActionForm>
           <Link href={`/skills/${skill.id}/history`} className={btnSecondary}>↺ Revise previous progress</Link>
         </div>
@@ -75,7 +85,7 @@ export default async function SkillPage({ params, searchParams }: { params: Prom
       <ActionForm action={startCoachAction} className="rounded-3xl border border-line bg-card p-3">
         <input type="hidden" name="skillId" value={skill.id} />
         <div className="flex gap-2">
-          <textarea name="message" rows={1} required maxLength={1500} placeholder="Message your coach…" className={`${input} !mt-0 min-h-12 flex-1 resize-none !border-0 !bg-transparent`} />
+          <textarea name="message" rows={1} required maxLength={1500} placeholder={`Message ${teacher.name}…`} className={`${input} !mt-0 min-h-12 flex-1 resize-none !border-0 !bg-transparent`} />
           <SubmitButton className="!min-h-12 !w-12 !rounded-full !p-0" pendingText="">➤</SubmitButton>
         </div>
       </ActionForm>
@@ -115,7 +125,7 @@ export default async function SkillPage({ params, searchParams }: { params: Prom
           ))}
         </Card>
       ) : (
-        <EmptyState icon="🎯" title="No challenges yet" body="Start improving and your coach will design your first challenge around your real situation." />
+        <EmptyState icon="🎯" title="No challenges yet" body={`Start improving and ${teacher.name} will design your first challenge around your real situation.`} />
       )}
 
       <More label="Update my self-assessment">

@@ -8,7 +8,20 @@ export type SkillCategory = "core" | "specific" | "custom";
 // `type` (not `interface`) so it is assignable to Prisma's JSON input type.
 export type Subskill = { key: string; label: string };
 
+/** The expert teacher who coaches this skill (a fictional AI persona). */
+export type Teacher = {
+  name: string;
+  emoji: string;
+  /** e.g. "Communication coach" */
+  title: string;
+  /** One line shown to users. */
+  tagline: string;
+  /** How this teacher coaches — fed to the AI. */
+  style: string;
+};
+
 export type SkillFramework = {
+  teacher?: Teacher;
   subskills: Subskill[];
   /** What the coach looks for when judging an attempt. */
   criteria: string[];
@@ -55,6 +68,7 @@ export const CORE_SKILLS: SkillDefinition[] = [
     category: "core",
     description: "Expressing ideas clearly, listening well and adapting your message to the person in front of you.",
     framework: {
+      teacher: { name: "Aanya", emoji: "🗣️", title: "Communication coach", tagline: "Helps you say what you mean — clearly and kindly.", style: "Warm and practical. Gives the exact words to say, then helps you make them your own. Loves short role-plays." },
       subskills: sub("Verbal clarity", "Listening", "Asking questions", "Expressing ideas", "Non-verbal communication", "Conflict communication"),
       criteria: [
         "Said the main point clearly and early",
@@ -79,6 +93,7 @@ export const CORE_SKILLS: SkillDefinition[] = [
     category: "core",
     description: "Acting despite uncertainty, speaking up and trusting your own judgement.",
     framework: {
+      teacher: { name: "Kabir", emoji: "🦁", title: "Confidence coach", tagline: "Turns hesitation into small, brave actions.", style: "Calm and encouraging. Starts with tiny, low-risk steps and celebrates every attempt. Never pushes too fast." },
       subskills: sub("Reducing hesitation", "Self-expression", "Decision-making", "Handling rejection", "Speaking up", "Taking initiative"),
       criteria: [
         "Acted within a short time instead of waiting for the 'perfect moment'",
@@ -103,6 +118,7 @@ export const CORE_SKILLS: SkillDefinition[] = [
     category: "core",
     description: "Doing what matters consistently — even when you don't feel like it.",
     framework: {
+      teacher: { name: "Meera", emoji: "⏱️", title: "Discipline coach", tagline: "Builds habits that stick, one day at a time.", style: "Structured and no-nonsense but kind. Focuses on routines, tiny daily commitments and removing distractions." },
       subskills: sub("Consistency", "Routine building", "Time management", "Distraction management", "Goal execution", "Self-control"),
       criteria: [
         "Did the planned action at the planned time",
@@ -127,6 +143,7 @@ export const CORE_SKILLS: SkillDefinition[] = [
     category: "core",
     description: "Identifying the real problem, breaking it down and working systematically toward a solution.",
     framework: {
+      teacher: { name: "Arjun", emoji: "🧩", title: "Problem-solving coach", tagline: "Breaks big problems into doable pieces.", style: "Curious and analytical. Asks 'why?' to find the real problem, then breaks it into small testable steps." },
       subskills: sub("Identifying problems", "Critical thinking", "Breaking down problems", "Decision-making", "Evaluating alternatives", "Learning from mistakes"),
       criteria: [
         "Defined the actual problem in their own words",
@@ -151,6 +168,7 @@ export const CORE_SKILLS: SkillDefinition[] = [
     category: "core",
     description: "Adjusting quickly and calmly when plans, people or circumstances change.",
     framework: {
+      teacher: { name: "Zoya", emoji: "🌊", title: "Adaptability coach", tagline: "Helps you stay steady when things change.", style: "Flexible and reassuring. Reframes change as practice and builds comfort with the unfamiliar step by step." },
       subskills: sub("Openness to change", "Composure under pressure", "Adjusting approach", "Learning new ways", "Handling uncertainty"),
       criteria: [
         "Stayed calm or recovered quickly when something changed",
@@ -171,6 +189,7 @@ export const SPECIFIC_SKILLS: SkillDefinition[] = [
     category: "specific",
     description: "Starting conversations with new people and growing them into real professional relationships.",
     framework: {
+      teacher: { name: "Rohan", emoji: "🤝", title: "Networking coach", tagline: "Makes meeting new people feel natural.", style: "Friendly and social. Gives conversation starters and follow-up ideas, focuses on genuine curiosity over 'selling yourself'." },
       subskills: sub(
         "Starting conversations",
         "Self-introduction",
@@ -203,6 +222,7 @@ export const SPECIFIC_SKILLS: SkillDefinition[] = [
     category: "specific",
     description: "Speaking to groups with structure, presence and impact.",
     framework: {
+      teacher: { name: "Ishaan", emoji: "🎤", title: "Public speaking coach", tagline: "From a nervous voice to a clear message.", style: "Energetic and supportive. Focuses on structure first, then delivery; practises out loud in short bursts." },
       subskills: sub("Structure", "Delivery", "Managing nerves", "Stage presence", "Handling questions"),
       criteria: ["Had a clear opening, point and close", "Spoke at a steady pace with eye contact", "Kept going despite nerves or mistakes"],
       categories: ["Speak up in a meeting", "Short prepared talk", "Impromptu answer", "Present to a group"],
@@ -215,6 +235,7 @@ export const SPECIFIC_SKILLS: SkillDefinition[] = [
     category: "specific",
     description: "Setting direction and helping others perform at their best.",
     framework: {
+      teacher: { name: "Tara", emoji: "🧭", title: "Leadership coach", tagline: "Helps you lead by example and bring people along.", style: "Thoughtful and direct. Focuses on ownership, clear direction and helping others do their best." },
       subskills: sub("Setting direction", "Influence", "Delegation", "Giving feedback", "Accountability"),
       criteria: ["Took responsibility for an outcome", "Got others to act without forcing them", "Gave clear, useful direction or feedback"],
       categories: ["Lead a small task", "Give feedback", "Delegate", "Make a call for the group"],
@@ -227,6 +248,7 @@ export const SPECIFIC_SKILLS: SkillDefinition[] = [
     category: "specific",
     description: "Reaching agreements that serve your interests and preserve relationships.",
     framework: {
+      teacher: { name: "Dev", emoji: "⚖️", title: "Negotiation coach", tagline: "Teaches you to ask for what you want — and get fair deals.", style: "Calm and strategic. Prepares you with clear asks, the other side's needs and a fallback plan." },
       subskills: sub("Preparation", "Asking for what you want", "Understanding the other side", "Creating value", "Holding your ground"),
       criteria: ["Asked clearly for a specific outcome", "Explored what the other side needed", "Did not give in at the first pushback"],
       categories: ["Ask for a small discount or favour", "Negotiate a plan with someone", "Counter an offer"],
@@ -239,6 +261,7 @@ export const SPECIFIC_SKILLS: SkillDefinition[] = [
     category: "specific",
     description: "Prioritising and planning so your time goes to what matters most.",
     framework: {
+      teacher: { name: "Nisha", emoji: "📅", title: "Time management coach", tagline: "Gets your time working for what matters.", style: "Organised and realistic. Uses simple plans, time-boxing and honest estimates." },
       subskills: sub("Prioritisation", "Planning", "Realistic estimation", "Saying no", "Protecting focus time"),
       criteria: ["Chose the most important task first", "Estimated and tracked time honestly", "Protected planned time from interruptions"],
       categories: ["Plan tomorrow", "Time-box a task", "Cut or delegate a task", "Weekly review"],
@@ -251,6 +274,7 @@ export const SPECIFIC_SKILLS: SkillDefinition[] = [
     category: "specific",
     description: "Presenting your experience clearly and confidently in interviews.",
     framework: {
+      teacher: { name: "Vikram", emoji: "💼", title: "Interview coach", tagline: "Helps you tell your story with confidence.", style: "Professional and encouraging. Uses the situation-action-result structure and mock questions." },
       subskills: sub("Preparation", "Answer structure", "Telling your story", "Composure", "Asking good questions"),
       criteria: ["Answered with a clear structure (situation, action, result)", "Gave concrete examples", "Stayed composed under tough questions"],
       categories: ["Prepare one story", "Mock answer out loud", "Mock interview with a friend", "Real interview reflection"],
@@ -263,6 +287,7 @@ export const SPECIFIC_SKILLS: SkillDefinition[] = [
     category: "specific",
     description: "Questioning assumptions and weighing evidence before concluding.",
     framework: {
+      teacher: { name: "Sara", emoji: "🔍", title: "Critical thinking coach", tagline: "Helps you question, weigh evidence and decide well.", style: "Inquisitive and fair-minded. Asks for evidence, alternative views and hidden assumptions." },
       subskills: sub("Questioning assumptions", "Weighing evidence", "Considering perspectives", "Spotting bias", "Reasoning clearly"),
       criteria: ["Named an assumption and tested it", "Looked for evidence on both sides", "Changed or confirmed a view for a stated reason"],
       categories: ["Fact-check a claim", "Argue the other side", "Decision with pros and cons"],
@@ -275,6 +300,7 @@ export const SPECIFIC_SKILLS: SkillDefinition[] = [
     category: "specific",
     description: "Recognising and managing your emotions and responding well to others'.",
     framework: {
+      teacher: { name: "Leela", emoji: "💗", title: "Emotional intelligence coach", tagline: "Understand your feelings and respond well to others.", style: "Gentle and perceptive. Helps you name emotions, pause, and respond with empathy." },
       subskills: sub("Self-awareness", "Self-regulation", "Empathy", "Reading others", "Responding with care"),
       criteria: ["Named their own emotion in the moment", "Paused before reacting", "Responded to the other person's feelings, not just their words"],
       categories: ["Name the emotion", "Pause before reacting", "Empathy check-in", "Repair after a reaction"],
@@ -287,6 +313,7 @@ export const SPECIFIC_SKILLS: SkillDefinition[] = [
     category: "specific",
     description: "Choosing well and in time, with incomplete information.",
     framework: {
+      teacher: { name: "Neel", emoji: "🎯", title: "Decision-making coach", tagline: "Helps you decide in time, with clear reasons.", style: "Clear-headed and practical. Uses simple criteria, time limits and honest reviews." },
       subskills: sub("Clear criteria", "Deciding in time", "Owning outcomes"),
       criteria: ["Set criteria before choosing", "Decided within the time they set", "Reviewed the outcome honestly"],
       categories: ["Decide a pending choice", "Time-boxed decision", "Decision review"],
@@ -299,6 +326,7 @@ export const SPECIFIC_SKILLS: SkillDefinition[] = [
     category: "specific",
     description: "Building trust and maintaining meaningful connections with people.",
     framework: {
+      teacher: { name: "Priya", emoji: "🌱", title: "Relationship coach", tagline: "Helps you build trust and stay connected.", style: "Caring and genuine. Focuses on small, consistent gestures and real interest in people." },
       subskills: sub("Building trust", "Staying in touch", "Giving value"),
       criteria: ["Reached out without needing something", "Kept a promise or follow-up", "Showed genuine interest"],
       categories: ["Check in on someone", "Help without being asked", "Deepen one relationship"],
@@ -311,6 +339,7 @@ export const SPECIFIC_SKILLS: SkillDefinition[] = [
     category: "specific",
     description: "Generating original ideas and new approaches to familiar things.",
     framework: {
+      teacher: { name: "Kiara", emoji: "🎨", title: "Creativity coach", tagline: "Unlocks ideas and the courage to try them.", style: "Playful and imaginative. Uses quick idea sprints and small experiments, no judgement early on." },
       subskills: sub("Idea generation", "Originality", "Willingness to experiment"),
       criteria: ["Produced several ideas before judging", "Tried something new", "Shared or tested an idea"],
       categories: ["Ten ideas", "Remix something", "Prototype an idea"],
@@ -323,6 +352,7 @@ export const SPECIFIC_SKILLS: SkillDefinition[] = [
     category: "specific",
     description: "Picking up new knowledge and skills efficiently and applying them.",
     framework: {
+      teacher: { name: "Aditya", emoji: "📚", title: "Learning coach", tagline: "Helps you learn faster and actually use it.", style: "Methodical and curious. Uses active recall, teaching back and applying the same day." },
       subskills: sub("Curiosity", "Learning method", "Applying what was learned"),
       criteria: ["Used an active learning method", "Applied it the same day", "Explained it to someone"],
       categories: ["Learn and apply", "Teach back", "Practice drill"],
@@ -335,6 +365,7 @@ export const SPECIFIC_SKILLS: SkillDefinition[] = [
     category: "specific",
     description: "Understanding needs and persuading people of real value.",
     framework: {
+      teacher: { name: "Raj", emoji: "📈", title: "Sales coach", tagline: "Helps you understand needs and show real value.", style: "Upbeat and honest. Discovery questions first, then a simple value pitch and a clear ask." },
       subskills: sub("Discovering needs", "Value pitch", "Handling objections", "Closing"),
       criteria: ["Asked about needs before pitching", "Linked the offer to their need", "Asked for a decision"],
       categories: ["Discovery questions", "Pitch practice", "Ask for the sale"],
@@ -347,6 +378,7 @@ export const SPECIFIC_SKILLS: SkillDefinition[] = [
     category: "specific",
     description: "Spotting opportunities and turning ideas into action.",
     framework: {
+      teacher: { name: "Ayaan", emoji: "🚀", title: "Entrepreneurship coach", tagline: "Turns ideas into small real-world tests.", style: "Bold but grounded. Talk to real users, test cheaply, ship small." },
       subskills: sub("Spotting opportunities", "Validating ideas", "Bias to action"),
       criteria: ["Talked to real potential users", "Tested an assumption cheaply", "Shipped something small"],
       categories: ["Customer conversation", "Smallest test", "Ship it"],
@@ -359,6 +391,7 @@ export const SPECIFIC_SKILLS: SkillDefinition[] = [
     category: "specific",
     description: "Organising, delegating to and developing a team.",
     framework: {
+      teacher: { name: "Naina", emoji: "👥", title: "Team management coach", tagline: "Helps you organise, delegate and grow a team.", style: "Supportive and structured. Clear outcomes, specific feedback, regular check-ins." },
       subskills: sub("Delegation", "Giving feedback", "Coordination"),
       criteria: ["Delegated with clear outcomes", "Gave specific feedback", "Kept the team aligned"],
       categories: ["Delegate a task", "One-to-one", "Team check-in"],
@@ -371,6 +404,7 @@ export const SPECIFIC_SKILLS: SkillDefinition[] = [
     category: "specific",
     description: "Shaping how others perceive your expertise and values.",
     framework: {
+      teacher: { name: "Rhea", emoji: "✨", title: "Personal branding coach", tagline: "Helps people see what you're great at.", style: "Creative and strategic. Clear positioning, consistent small posts, authentic voice." },
       subskills: sub("Positioning", "Visibility", "Consistency"),
       criteria: ["Clearly stated what they stand for", "Shared work publicly", "Did it consistently"],
       categories: ["Write your one-liner", "Share a post", "Weekly visibility habit"],
@@ -383,6 +417,7 @@ export const SPECIFIC_SKILLS: SkillDefinition[] = [
     category: "specific",
     description: "Using narrative to make ideas memorable and persuasive.",
     framework: {
+      teacher: { name: "Kavya", emoji: "📖", title: "Storytelling coach", tagline: "Makes your ideas memorable through stories.", style: "Expressive and vivid. Beginning-tension-end structure with concrete detail." },
       subskills: sub("Narrative structure", "Vivid detail", "Clear point"),
       criteria: ["Story had a beginning, tension and end", "Used concrete detail", "Story made a clear point"],
       categories: ["Tell a short story", "Story in a pitch", "Story to a group"],
@@ -395,6 +430,7 @@ export const SPECIFIC_SKILLS: SkillDefinition[] = [
     category: "specific",
     description: "Fully understanding others before responding.",
     framework: {
+      teacher: { name: "Omar", emoji: "👂", title: "Listening coach", tagline: "Helps people feel truly heard by you.", style: "Patient and attentive. Focuses on not interrupting, clarifying questions and summarising back." },
       subskills: sub("Attention", "Clarifying questions", "Reflecting back"),
       criteria: ["Did not interrupt", "Asked a clarifying question", "Summarised what they heard"],
       categories: ["Listen without interrupting", "Summarise back", "Deep conversation"],
@@ -407,6 +443,7 @@ export const SPECIFIC_SKILLS: SkillDefinition[] = [
     category: "specific",
     description: "Turning disagreements into constructive outcomes.",
     framework: {
+      teacher: { name: "Sana", emoji: "🕊️", title: "Conflict resolution coach", tagline: "Turns disagreements into solutions.", style: "Calm and balanced. De-escalate first, understand the real concern, agree on a next step." },
       subskills: sub("De-escalation", "Understanding positions", "Finding resolution"),
       criteria: ["Stayed calm and lowered tension", "Understood the other side's real concern", "Agreed on a next step"],
       categories: ["Calm a small disagreement", "Understand the other side", "Resolve an open issue"],
@@ -421,9 +458,21 @@ export const ALL_SKILLS: SkillDefinition[] = [...CORE_SKILLS, ...SPECIFIC_SKILLS
 export function customFramework(name: string, subskillLabels: string[]): SkillFramework {
   const labels = subskillLabels.map((s) => s.trim()).filter(Boolean).slice(0, 7);
   return {
+    teacher: customTeacher(name),
     subskills: sub(...(labels.length ? labels : ["Fundamentals", "Practice in real situations", "Consistency", "Handling setbacks"])),
     criteria: [`Took a concrete action that practises ${name}`, "Reflected honestly on the result", "Built on previous attempts"],
     categories: ["First small attempt", "Repeat in a new situation", "Stretch attempt"],
     progression: `Start with small, low-risk actions that practise ${name}, then repeat them in real situations, then take on harder, higher-stakes versions.`,
+  };
+}
+
+/** Teacher for a user-created skill. */
+export function customTeacher(skillName: string): Teacher {
+  return {
+    name: "Unfold",
+    emoji: "🌟",
+    title: `${skillName} coach`,
+    tagline: `Your personal coach for ${skillName}.`,
+    style: `Practical and encouraging expert in ${skillName}. Breaks it into small real-world actions and builds on each attempt.`,
   };
 }

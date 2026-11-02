@@ -6,9 +6,9 @@ import { decayedStrength } from "./memory";
 import { LEVELS, levelChange, levelForScore, levelProgress, levelToScore } from "../assessment/levels";
 import { ALL_SKILLS } from "../skills/catalog";
 
-test("catalog: five fixed core skills, each with its own framework", () => {
+test("catalog: four fixed core skills, each with its own framework", () => {
   const core = ALL_SKILLS.filter((s) => s.category === "core").map((s) => s.name);
-  assert.deepEqual(core, ["Communication", "Confidence", "Discipline", "Problem-solving", "Adaptability"]);
+  assert.deepEqual(core, ["Communication", "Confidence", "Discipline", "Time management"]);
   assert.equal(new Set(ALL_SKILLS.map((s) => s.slug)).size, ALL_SKILLS.length);
   for (const s of ALL_SKILLS) {
     assert.ok(s.framework.subskills.length >= 3, `${s.name} needs subskills`);
@@ -22,6 +22,13 @@ test("catalog: every skill has its own expert teacher", () => {
   assert.ok(names.every(Boolean), "missing teacher");
   assert.equal(new Set(names).size, ALL_SKILLS.length, "teacher names must be unique");
   for (const s of ALL_SKILLS) assert.ok(s.framework.teacher!.style.length > 20 && s.framework.teacher!.emoji);
+});
+
+test("catalog: every added skill belongs to a profession group", async () => {
+  const { SKILL_GROUPS } = await import("../skills/catalog");
+  const ids = new Set(SKILL_GROUPS.map((g) => g.id));
+  for (const s of ALL_SKILLS.filter((x) => x.category !== "core")) assert.ok(ids.has(s.framework.group as never), `${s.name} has no group`);
+  for (const g of SKILL_GROUPS) assert.ok(ALL_SKILLS.some((s) => s.framework.group === g.id && s.category !== "core"), `${g.label} is empty`);
 });
 
 test("self-selected levels map to scores inside the matching level band", () => {

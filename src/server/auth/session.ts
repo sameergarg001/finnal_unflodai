@@ -63,6 +63,12 @@ export async function requireReadyUser() {
   const user = await requireUser();
   const next = onboardingPath(user);
   if (next) redirect(next);
+  // Core skills can change over time (e.g. a new one was added): keep every user's set complete.
+  const [coreCount, mine] = await Promise.all([
+    db.skill.count({ where: { category: "core" } }),
+    db.userSkill.count({ where: { userId: user.id, isActive: true, skill: { category: "core" } } }),
+  ]);
+  if (mine < coreCount) await ensureCoreSkills(user.id);
   return user;
 }
 

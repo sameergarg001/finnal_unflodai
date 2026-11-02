@@ -1,7 +1,9 @@
+import { EXTRA_SKILLS } from "./extraSkills";
+
 // Canonical skill catalog, seeded into the `Skill` table.
 // Every skill has its own development framework: subskills, assessment
 // criteria, challenge categories, feedback questions and progression logic.
-// Five core skills are fixed for every user; the rest can be added.
+// Four core skills are fixed for every user; the rest can be added from "+".
 
 export type SkillCategory = "core" | "specific" | "custom";
 
@@ -22,6 +24,10 @@ export type Teacher = {
 
 export type SkillFramework = {
   teacher?: Teacher;
+  /** Group shown in "Add skill" (see SKILL_GROUPS). */
+  group?: string;
+  /** Extra search words, e.g. degrees and professions. */
+  tags?: string[];
   subskills: Subskill[];
   /** What the coach looks for when judging an attempt. */
   criteria: string[];
@@ -61,7 +67,7 @@ export const DEFAULT_FEEDBACK_QUESTIONS = [
 const sub = (...labels: string[]): Subskill[] =>
   labels.map((label) => ({ key: label.toLowerCase().replace(/[^a-z]+/g, "_").replace(/^_|_$/g, ""), label }));
 
-export const CORE_SKILLS: SkillDefinition[] = [
+const HANDWRITTEN_A: SkillDefinition[] = [
   {
     slug: "communication",
     name: "Communication",
@@ -119,7 +125,7 @@ export const CORE_SKILLS: SkillDefinition[] = [
     description: "Doing what matters consistently — even when you don't feel like it.",
     framework: {
       teacher: { name: "Meera", emoji: "⏱️", title: "Discipline coach", tagline: "Builds habits that stick, one day at a time.", style: "Structured and no-nonsense but kind. Focuses on routines, tiny daily commitments and removing distractions." },
-      subskills: sub("Consistency", "Routine building", "Time management", "Distraction management", "Goal execution", "Self-control"),
+      subskills: sub("Consistency", "Beating procrastination", "Routine building", "Distraction management", "Goal execution", "Self-control"),
       criteria: [
         "Did the planned action at the planned time",
         "Handled distractions or low motivation with a concrete tactic",
@@ -182,7 +188,7 @@ export const CORE_SKILLS: SkillDefinition[] = [
   },
 ];
 
-export const SPECIFIC_SKILLS: SkillDefinition[] = [
+const HANDWRITTEN_B: SkillDefinition[] = [
   {
     slug: "networking",
     name: "Networking",
@@ -452,7 +458,89 @@ export const SPECIFIC_SKILLS: SkillDefinition[] = [
   },
 ];
 
-export const ALL_SKILLS: SkillDefinition[] = [...CORE_SKILLS, ...SPECIFIC_SKILLS];
+/** The four skills every user develops. Everything else is added from "+". */
+export const CORE_SLUGS = ["communication", "confidence", "self-discipline", "time-management"];
+
+/** Groups in "Add skill", for every kind of student and profession. */
+export const SKILL_GROUPS = [
+  { id: "career", label: "Career & jobs", hint: "Placements, interviews, workplace" },
+  { id: "students", label: "Students", hint: "School, college, competitive exams" },
+  { id: "tech", label: "Engineering & tech", hint: "B.Tech, BCA, MCA, IT jobs" },
+  { id: "commerce", label: "Commerce & finance", hint: "B.Com, CA, banking" },
+  { id: "business", label: "Business & management", hint: "BBA, MBA, founders, managers" },
+  { id: "speaking", label: "Speaking & influence", hint: "Presenting, persuading, selling" },
+  { id: "creative", label: "Creative & media", hint: "BA, B.Des, mass comm, creators" },
+  { id: "health", label: "Health & care", hint: "MBBS, nursing, pharmacy, psychology" },
+  { id: "law", label: "Law & public service", hint: "LLB, UPSC, government" },
+  { id: "growth", label: "Personal growth", hint: "Mindset, emotions, relationships" },
+] as const;
+
+const GROUP_OF: Record<string, string> = {
+  "problem-solving": "growth",
+  adaptability: "growth",
+  networking: "career",
+  "public-speaking": "speaking",
+  leadership: "business",
+  negotiation: "speaking",
+  "interview-skills": "career",
+  "critical-thinking": "growth",
+  "emotional-intelligence": "growth",
+  "decision-making": "business",
+  "relationship-building": "growth",
+  creativity: "creative",
+  "learning-ability": "students",
+  sales: "speaking",
+  entrepreneurship: "business",
+  "team-management": "business",
+  "personal-branding": "creative",
+  storytelling: "speaking",
+  "active-listening": "growth",
+  "conflict-resolution": "growth",
+};
+
+/** Search words (degrees, professions) for the hand-written skills. */
+const TAGS_OF: Record<string, string[]> = {
+  communication: ["speaking", "english", "everyone"],
+  confidence: ["shyness", "fear", "self esteem", "everyone"],
+  "self-discipline": ["procrastination", "consistency", "habits", "everyone"],
+  "time-management": ["productivity", "planning", "students", "everyone"],
+  "problem-solving": ["btech", "engineering", "consulting", "case study", "mba"],
+  adaptability: ["change", "new job", "hostel", "relocation"],
+  networking: ["linkedin", "placements", "internship", "mba", "career"],
+  "public-speaking": ["stage", "seminar", "college", "anchoring", "speech"],
+  leadership: ["mba", "bba", "manager", "team lead", "student council"],
+  negotiation: ["mba", "bba", "salary", "sales", "business"],
+  "interview-skills": ["placements", "job", "hr interview", "upsc interview", "mba admissions"],
+  "critical-thinking": ["upsc", "law", "research", "reasoning"],
+  "emotional-intelligence": ["psychology", "relationships", "workplace", "eq"],
+  "decision-making": ["mba", "career choice", "manager"],
+  "relationship-building": ["friends", "family", "workplace", "clients"],
+  creativity: ["design", "bdes", "arts", "ideas", "innovation"],
+  "learning-ability": ["students", "school", "college", "upskilling"],
+  sales: ["bba", "mba", "business development", "marketing"],
+  entrepreneurship: ["startup", "founder", "bba", "mba", "business"],
+  "team-management": ["mba", "manager", "team lead", "bba"],
+  "personal-branding": ["linkedin", "creator", "freelancer", "career"],
+  storytelling: ["content", "marketing", "pitch", "mass comm"],
+  "active-listening": ["counselling", "psychology", "relationships", "customer service"],
+  "conflict-resolution": ["workplace", "family", "hr", "manager"],
+};
+
+const BASE_SKILLS = [...HANDWRITTEN_A, ...HANDWRITTEN_B, ...EXTRA_SKILLS].map((s) => ({
+  ...s,
+  framework: {
+    ...s.framework,
+    group: s.framework.group ?? GROUP_OF[s.slug] ?? "growth",
+    tags: s.framework.tags ?? TAGS_OF[s.slug] ?? [],
+  },
+}));
+
+export const ALL_SKILLS: SkillDefinition[] = [
+  ...CORE_SLUGS.map((slug) => ({ ...BASE_SKILLS.find((s) => s.slug === slug)!, category: "core" as const })),
+  ...BASE_SKILLS.filter((s) => !CORE_SLUGS.includes(s.slug)).map((s) => ({ ...s, category: "specific" as const })),
+];
+export const CORE_SKILLS = ALL_SKILLS.filter((s) => s.category === "core");
+export const SPECIFIC_SKILLS = ALL_SKILLS.filter((s) => s.category === "specific");
 
 /** Framework for a user-created custom skill. */
 export function customFramework(name: string, subskillLabels: string[]): SkillFramework {

@@ -7,7 +7,7 @@ AI-powered personal skill development. UnfoldAI is a personal mentor that unders
 ## Features
 
 - **Sign in:** Continue with Google (real OAuth) or email + password.
-- **Onboarding:** short profile (name, age, profession, goal, about; skippable) → self-assessment of the **5 fixed core skills** (Communication, Confidence, Discipline, Problem-solving, Adaptability), 0–100.
+- **Onboarding:** short profile (name, age, profession, goal, about; skippable) → self-assessment (0–100) of the **4 fixed core skills**: Communication, Confidence, Discipline, Time management. 50+ more skills for every profession (B.Tech, B.Com, BBA, MBA, creative, health, law…) can be added with "+".
 - **Dashboard:** greeting, mentor message, overall development, skill cards (score, progress, challenges done, trend), add skills, recent activity, notifications.
 - **Skills:** each skill has its own development framework (subskills, assessment criteria, challenge categories, feedback questions, progression). Add catalog skills (Networking, Public speaking, Leadership…) or create custom ones; duplicates are detected.
 - **AI coach:** per-skill conversation that knows your history, asks one question at a time, then designs a personalised challenge (difficulty, objective, steps, example, feedback instructions). Options: take it, another one, make it easier, explain how, tell more.

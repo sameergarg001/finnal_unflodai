@@ -39,7 +39,7 @@ export function frameworkOf(skill: { rubric: Prisma.JsonValue }): SkillFramework
   };
 }
 
-/** Makes sure the five fixed core skills are on the user's dashboard. */
+/** Makes sure the four fixed core skills are on the user's dashboard. */
 export async function ensureCoreSkills(userId: string) {
   const core = await db.skill.findMany({ where: { category: "core" }, select: { id: true } });
   await db.$transaction(
@@ -61,8 +61,8 @@ export async function getSkillForUser(userId: string, skillId: string) {
 
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 
-/** Catalog + own custom skills matching a search, with "already added" flags. */
-export async function searchSkills(userId: string, q: string) {
+/** Catalog + own custom skills matching a search (name, description, degrees/professions), with "already added" flags. */
+export async function searchSkills(userId: string, q: string, group?: string) {
   const [skills, mine] = await Promise.all([
     db.skill.findMany({ where: { category: { not: "core" }, OR: [{ ownerId: null }, { ownerId: userId }] }, orderBy: { sortOrder: "asc" } }),
     db.userSkill.findMany({ where: { userId, isActive: true }, select: { skillId: true } }),
@@ -70,8 +70,21 @@ export async function searchSkills(userId: string, q: string) {
   const active = new Set(mine.map((m) => m.skillId));
   const query = norm(q);
   return skills
-    .filter((s) => !query || norm(s.name).includes(query) || norm(s.description).includes(query))
-    .map((s) => ({ id: s.id, name: s.name, description: s.description, custom: s.category === "custom", added: active.has(s.id) }));
+    .map((s) => {
+      const fw = (s.rubric ?? {}) as Partial<SkillFramework>;
+      return {
+        id: s.id,
+        name: s.name,
+        description: s.description,
+        custom: s.category === "custom",
+        added: active.has(s.id),
+        group: s.category === "custom" ? "mine" : (fw.group ?? "growth"),
+        teacher: teacherOf(s),
+        haystack: norm([s.name, s.description, ...(fw.tags ?? []), ...(fw.subskills ?? []).map((x) => x.label)].join(" ")),
+      };
+    })
+    .filter((s) => (!group || s.group === group) && (!query || query.split(" ").every((w) => s.haystack.includes(w))))
+    .map(({ haystack: _h, ...rest }) => rest);
 }
 
 async function activate(userId: string, skillId: string, selfScore?: number | null) {

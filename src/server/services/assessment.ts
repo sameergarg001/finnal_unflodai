@@ -1,13 +1,13 @@
 import { db } from "@/lib/db";
 import { ensureCoreSkills, setSelfScore } from "./skills";
 
-/** The five fixed core skills, in display order. */
+/** The four fixed core skills, in display order. */
 export async function getCoreSkills() {
   return db.skill.findMany({ where: { category: "core" }, orderBy: { sortOrder: "asc" } });
 }
 
 /**
- * Initial (or repeated) self-assessment of the five core skills, 0–100 each.
+ * Initial (or repeated) self-assessment of the four core skills, 0–100 each.
  * These are the user's own ratings, stored separately from UnfoldAI's
  * evidence-based scores.
  */

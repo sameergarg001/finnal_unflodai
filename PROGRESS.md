@@ -9,7 +9,7 @@
 
 **Working on:** Full UnfoldAI spec (Google login, 5 core skills, AI coach, challenges, feedback, evidence scores, reports, profile).
 
-**Status:** ✅ Built and tested. ✅ Google login works. ⏳ Waiting for 1 free key: **Groq** (AI).
+**Status:** ✅ Built and tested. ✅ Google login works. ✅ Real AI works (Groq, free).
 
 ---
 
@@ -28,13 +28,13 @@ Decisions: keep the current Next.js app (not Expo/MongoDB), follow the new onboa
 | 7 | Profile (edit, skills, notifications, theme, password, delete account), notifications | ✅ |
 | 8 | Tests (17 pass), full-flow test, screenshots, saved to GitHub | ✅ |
 | 9 | Google login keys (project `unfoldai`, testing mode, test user unfoldai38@gmail.com) | ✅ |
-| 10 | Groq free AI key | ⏳ needs you |
+| 10 | Groq free AI key (model gpt-oss-120b, backup gpt-oss-20b) | ✅ |
 
 ---
 
 ## Known problems / what's left
 
-- **Gemini free limit is used up for today** (only 20 requests/day). Until a Groq key is added, the coach uses built-in questions and challenges, and the analysis is basic (clearly labelled).
+- **Groq free limit:** about 8,000 words-worth of AI per minute. If many messages are sent very fast, the app waits a few seconds or uses the smaller backup model.
 - **Google login works on the computer only** (http://localhost:3000). Google doesn't allow the phone's 10.x address — on the phone, use email sign-in. Google login is in "Testing" mode: only Gmail accounts added as test users (Google Cloud → Google Auth Platform → Audience) can sign in.
 - Phone push notifications / email reminders are not built. Notifications appear inside the app (🔔).
 - Native Android/iOS app (Expo) not built. The web app installs to the home screen instead.
@@ -44,6 +44,7 @@ Decisions: keep the current Next.js app (not Expo/MongoDB), follow the new onboa
 ## Log
 
 ### 2026-11-02
+- Real AI ✅ Created a free Groq key (account unfoldai38) and saved it in `.env`. Coach replies in ~1 second. Tested the full flow with real AI. Fixed: AI said "he" about the user (now always "you"), a bonus given wrongly on a first challenge, and occasional bad AI formatting.
 - Google login ✅ Set up Google Cloud project `unfoldai`: consent screen (UnfoldAI, External, Testing), test user unfoldai38@gmail.com, web client for localhost. Keys saved in `.env` (not on GitHub). Signed in with Google for real: the account linked to the existing unfoldai38 account, with name and photo.
 - Built the full UnfoldAI spec (see table above). Tested every flow with a script: onboarding, add skill (duplicate blocked), custom skill, coach questions, challenge, "easier", accept, second active challenge blocked, feedback, analysis, score +0.4 with reason, "could not attempt" = no change, abandon, reports, review, notifications. All 15 signed-in screens open without errors. Took iPhone-size screenshots and fixed 4 small layout/text issues.
 

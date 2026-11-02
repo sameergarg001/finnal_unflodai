@@ -529,6 +529,9 @@ export async function analyzeFeedback(reflectionId: string) {
   const responses = (Array.isArray(reflection.responses) ? reflection.responses : [{ question: "What happened?", answer: reflection.whatHappened }]) as { question: string; answer: string }[];
 
   const ctx = await buildSkillContext(userId, ch.skillId);
+  // "Overcame a previous difficulty" only counts if a difficulty was known before this challenge.
+  const hadPriorDifficulty =
+    (await db.userInsight.count({ where: { userId, kind: "blocker", createdAt: { lt: reflection.createdAt }, OR: [{ skillId: ch.skillId }, { skillId: null }] } })) > 0;
   let analysis: Analysis;
   let modelVersion = "heuristic";
   try {
@@ -562,7 +565,7 @@ export async function analyzeFeedback(reflectionId: string) {
     completionStatus: status,
     skillSignal: analysis.skillSignal,
     evidenceStrength: analysis.evidenceStrength,
-    overcamePrevious: analysis.overcamePrevious,
+    overcamePrevious: analysis.overcamePrevious && hadPriorDifficulty,
     recentCompletions,
   });
   const difficulty = nextDifficulty(base.difficulty, { completionStatus: status, recommendation: analysis.difficultyRecommendation });
@@ -573,7 +576,7 @@ export async function analyzeFeedback(reflectionId: string) {
     toImprove: analysis.toImprove,
     nextFocus: analysis.nextFocus,
     nextSubskill,
-    overcamePrevious: analysis.overcamePrevious,
+    overcamePrevious: analysis.overcamePrevious && hadPriorDifficulty,
   };
 
   try {
@@ -614,7 +617,7 @@ export async function analyzeFeedback(reflectionId: string) {
             skillSignal: analysis.skillSignal,
             evidenceStrength: analysis.evidenceStrength,
             difficulty: ch.difficulty,
-            overcamePrevious: analysis.overcamePrevious,
+            overcamePrevious: analysis.overcamePrevious && hadPriorDifficulty,
             analysedBy: modelVersion,
           },
         },

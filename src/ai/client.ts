@@ -24,7 +24,7 @@ export function getAiProvider(): AiProvider | null {
     case "groq": {
       const key = process.env.GROQ_API_KEY;
       if (!key) return null;
-      cached = createGroqProvider(key, process.env.GROQ_MODEL || "llama-3.3-70b-versatile");
+      cached = createGroqProvider(key, process.env.GROQ_MODEL || "openai/gpt-oss-120b", process.env.GROQ_FALLBACK_MODEL ?? "openai/gpt-oss-20b");
       return cached;
     }
     case "gemini": {
@@ -57,6 +57,8 @@ export async function generateStructured<T>(
       const parsed = schema.safeParse(JSON.parse(stripFences(text)));
       if (parsed.success) return { data: parsed.data, modelVersion };
       lastError = parsed.error;
+      const issue = parsed.error.issues[0];
+      console.warn(`[ai] invalid output (attempt ${attempt + 1}): ${issue.path.join(".")} — ${issue.message}`);
     } catch (e) {
       lastError = e;
     }

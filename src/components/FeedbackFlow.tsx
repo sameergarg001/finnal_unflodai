@@ -12,7 +12,7 @@ const STATUSES = [
   { value: "not_attempted", label: "Could not attempt", icon: "⏸️" },
 ] as const;
 
-const NOT_ATTEMPTED_QUESTIONS = ["What got in the way?", "How did you feel about the challenge?", "What would make it easier to start next time?"];
+const NOT_ATTEMPTED_QUESTIONS = ["What got in the way?", "How did you feel about the task?", "What would make it easier to start next time?"];
 
 type SpeechRec = { start(): void; stop(): void; lang: string; interimResults: boolean; continuous: boolean; onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null; onend: (() => void) | null };
 
@@ -75,7 +75,7 @@ export function FeedbackFlow({ challengeId, questions }: { challengeId: string; 
 
   return (
     <div className="space-y-3">
-      <Coach>Welcome back! Did you get a chance to try the challenge?</Coach>
+      <Coach>Welcome back! Did you get a chance to try the task?</Coach>
       {status === null ? (
         <div className="grid gap-2">
           {STATUSES.map((s) => (

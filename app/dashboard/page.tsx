@@ -74,7 +74,7 @@ export default async function DashboardPage() {
           <div className="min-w-0 flex-1 space-y-1.5 text-sm">
             <p className="font-semibold">Overall development</p>
             {overall.evidenceAverage == null ? (
-              <p className="text-muted">Complete your first challenge and UnfoldAI will start measuring real progress.</p>
+              <p className="text-muted">Complete your first task and UnfoldAI will start measuring real progress.</p>
             ) : (
               <p className="text-muted">
                 {overall.evidenceBaseline} → <b className="text-fg">{overall.evidenceAverage}</b> across {overall.assessedSkills} assessed skill{overall.assessedSkills === 1 ? "" : "s"}
@@ -91,7 +91,7 @@ export default async function DashboardPage() {
       </Card>
       )}
 
-      {/* Other waiting challenges (the first one is the next step above) */}
+      {/* Other waiting tasks (the first one is the next step above) */}
       {recent.active.slice(next?.kind === "feedback" ? 1 : 0).map((ch) => (
         <Link key={ch.id} href={`/challenge/${ch.id}`} className="flex items-center gap-3 rounded-3xl border border-accent-2/30 bg-accent-2/10 p-4 active:scale-[0.99]">
           <span className="text-2xl">⏳</span>
@@ -118,7 +118,7 @@ export default async function DashboardPage() {
         <Card className="space-y-4">
           {recent.lastDone && (
             <Link href={`/challenge/${recent.lastDone.id}`} className="block">
-              <p className="text-xs text-muted">Last challenge · {recent.lastDone.skill.name}</p>
+              <p className="text-xs text-muted">Last task · {recent.lastDone.skill.name}</p>
               <p className="mt-0.5 font-semibold">{recent.lastDone.title}</p>
               <div className="mt-1.5 flex flex-wrap gap-1.5">
                 <Pill>{labelStatus(recent.lastDone.reflection?.completionStatus ?? "")}</Pill>

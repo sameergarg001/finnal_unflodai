@@ -130,7 +130,7 @@ export async function getReports(user: { id: string; timezone: string }) {
   }
   const mostImproved = [...gains.values()].filter((g) => g.gain > 0).sort((a, b) => b.gain - a.gain).slice(0, 3);
 
-  // Subskill progress: challenges completed per subskill.
+  // Subskill progress: tasks completed per subskill.
   const skills = await db.skill.findMany({ where: { id: { in: [...new Set(challenges.map((c) => c.skillId))] } } });
   const subskills: { skill: string; label: string; completed: number; attempted: number }[] = [];
   for (const s of skills) {
@@ -147,7 +147,7 @@ export async function getReports(user: { id: string; timezone: string }) {
     }
   }
 
-  // Consistency: challenges with feedback per week, last 8 weeks.
+  // Consistency: tasks with feedback per week, last 8 weeks.
   const thisWeek = weekStartKey(localDateKey(tz));
   const weeks = Array.from({ length: 8 }, (_, i) => addDays(thisWeek, -7 * (7 - i)));
   const perWeek = new Map(weeks.map((w) => [w, 0]));
@@ -236,7 +236,7 @@ export async function getProgressReview(userId: string, skillId: string | null):
       improved: [...new Set(data.flatMap((d) => d.wentWell))].slice(-4),
       stillNeedsWork: [...new Set(data.slice(-3).flatMap((d) => d.toImprove))].slice(0, 4),
       focusNext: last.nextFocus ?? "Keep building on your last challenge.",
-      summary: `Based on ${data.length} challenge${data.length === 1 ? "" : "s"} you reported on.`,
+      summary: `Based on ${data.length} task${data.length === 1 ? "" : "s"} you reported on.`,
     };
   }
   const reportData = { ...review, basedOn: data.length };

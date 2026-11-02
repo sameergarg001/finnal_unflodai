@@ -24,7 +24,7 @@ export default async function HistoryPage({ params }: { params: Promise<{ id: st
   return (
     <AppShell title={`${skill.name} · history`} back={`/skills/${id}`}>
       {challenges.length === 0 ? (
-        <EmptyState icon="📖" title="Nothing to revise yet" body="Your challenges, feedback and analyses for this skill will appear here." action={<Link href={`/skills/${id}`} className="font-semibold text-accent">Start improving →</Link>} />
+        <EmptyState icon="📖" title="Nothing to revise yet" body="Your tasks, feedback and analyses for this skill will appear here." action={<Link href={`/skills/${id}`} className="font-semibold text-accent">Start improving →</Link>} />
       ) : (
         <>
           <Suspense fallback={<Card className="space-y-2"><Skeleton className="h-4 w-1/2" /><Skeleton className="h-16" /><Skeleton className="h-16" /></Card>}>
@@ -74,7 +74,7 @@ export default async function HistoryPage({ params }: { params: Promise<{ id: st
 async function Review({ userId, skillId }: { userId: string; skillId: string }) {
   const review = await getProgressReview(userId, skillId);
   if (!review) {
-    return <Card><p className="text-sm text-muted">Once you&apos;ve reported back on a challenge, your coach will explain what you&apos;ve improved and what to focus on next.</p></Card>;
+    return <Card><p className="text-sm text-muted">Once you&apos;ve reported back on a task, your coach will explain what you&apos;ve improved and what to focus on next.</p></Card>;
   }
   return (
     <Card className="space-y-4">

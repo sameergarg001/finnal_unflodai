@@ -33,7 +33,7 @@ export function TrendChart({ points }: { points: { date: string; value: number }
   );
 }
 
-/** Challenges reported per week (last 8 weeks). */
+/** Tasks reported per week (last 8 weeks). */
 export function WeeklyBars({ weeks }: { weeks: { week: string; count: number }[] }) {
   const W = 320, H = 110, P = { l: 6, r: 6, t: 14, b: 20 };
   const max = Math.max(1, ...weeks.map((w) => w.count));
@@ -41,7 +41,7 @@ export function WeeklyBars({ weeks }: { weeks: { week: string; count: number }[]
   const bw = slot - 2 - 10;
   const base = H - P.b;
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label={`Challenges per week: ${weeks.map((w) => w.count).join(", ")}`}>
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label={`Tasks per week: ${weeks.map((w) => w.count).join(", ")}`}>
       <line x1={P.l} x2={W - P.r} y1={base} y2={base} stroke="var(--line)" />
       {weeks.map((w, i) => {
         const h = (w.count / max) * (base - P.t);

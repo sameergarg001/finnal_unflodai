@@ -18,7 +18,7 @@ export default async function NotificationsPage() {
   return (
     <AppShell title="Notifications" back="/dashboard">
       {items.length === 0 ? (
-        <EmptyState icon="🔔" title="You're all caught up" body="Reminders about active challenges and reports will show up here." />
+        <EmptyState icon="🔔" title="You're all caught up" body="Reminders about active tasks and reports will show up here." />
       ) : (
         <div className="space-y-2">
           {items.map((n) => (

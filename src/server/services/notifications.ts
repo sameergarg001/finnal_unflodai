@@ -43,13 +43,13 @@ export async function getNotifications(userId: string): Promise<{ items: AppNoti
     if (prefs.notifications.feedback && now - since > DAY) {
       items.push({
         id: `feedback:${ch.id}`,
-        title: "Your challenge is waiting for feedback",
+        title: "Your task is waiting for feedback",
         body: `How did "${ch.title}" go? Tell your coach when you've tried it.`,
         href: `/challenge/${ch.id}`,
         at: new Date(since + DAY),
       });
     } else if (prefs.notifications.activeChallenge) {
-      items.push({ id: `active:${ch.id}`, title: `Active ${ch.skill.name} challenge`, body: ch.title, href: `/challenge/${ch.id}`, at: new Date(since) });
+      items.push({ id: `active:${ch.id}`, title: `Active ${ch.skill.name} task`, body: ch.title, href: `/challenge/${ch.id}`, at: new Date(since) });
     }
   }
 
@@ -70,7 +70,7 @@ export async function getNotifications(userId: string): Promise<{ items: AppNoti
         items.push({
           id: `inactive:${skill.id}`,
           title: `You haven't worked on ${skill.name} recently`,
-          body: "A small challenge keeps the progress going.",
+          body: "A small task keeps the progress going.",
           href: `/skills/${skill.id}`,
           at: new Date(oldest._max.completedAt!.getTime() + 7 * DAY),
         });

@@ -85,8 +85,8 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
       <More label="🔔 Notifications">
         <form action={updatePreferencesAction} className="space-y-1">
           <input type="hidden" name="notifications" value="1" />
-          <Toggle name="n_active" label="Active challenge reminders" checked={prefs.notifications.activeChallenge} />
-          <Toggle name="n_feedback" label="Challenge waiting for feedback" checked={prefs.notifications.feedback} />
+          <Toggle name="n_active" label="Active task reminders" checked={prefs.notifications.activeChallenge} />
+          <Toggle name="n_feedback" label="Task waiting for feedback" checked={prefs.notifications.feedback} />
           <Toggle name="n_reports" label="Development report updates" checked={prefs.notifications.reports} />
           <Toggle name="n_inactive" label="Skills you haven't practised recently" checked={prefs.notifications.inactiveSkill} />
           <p className="pb-3 pt-1 text-xs text-muted">Shown in the app&apos;s notification centre. We keep them few.</p>
@@ -121,7 +121,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
       </form>
 
       <More label={<span className="text-danger">Delete account</span>}>
-        <p className="mb-3 text-sm text-muted">This permanently deletes your profile, skills, challenges, feedback and reports. It can&apos;t be undone.</p>
+        <p className="mb-3 text-sm text-muted">This permanently deletes your profile, skills, tasks, feedback and reports. It can&apos;t be undone.</p>
         <ActionForm action={deleteAccountAction} className="space-y-3" confirm="Delete your account and all data permanently?">
           <input name="confirm" required placeholder="Type DELETE to confirm" className={input} autoComplete="off" />
           <button className="min-h-12 w-full rounded-2xl bg-danger px-4 py-3 font-semibold text-white">Delete my account</button>

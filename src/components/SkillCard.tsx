@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { SkillCardData } from "@/server/services/progress";
 import { ProgressBar, SERIES, Sparkline } from "./ui";
 
-/** Dashboard skill card: score, progress, challenges, trend. Tappable. */
+/** Dashboard skill card: score, progress, tasks, trend. Tappable. */
 export function SkillCard({ s }: { s: SkillCardData }) {
   const assessed = s.evidenceScore !== null;
   const value = assessed ? s.evidenceScore! : s.selfScore;
@@ -12,7 +12,7 @@ export function SkillCard({ s }: { s: SkillCardData }) {
         <p className="font-semibold leading-tight">{s.name}</p>
         <span className="text-lg leading-none" title={`Teacher: ${s.teacher.name}`} aria-hidden>{s.teacher.emoji}</span>
       </div>
-      {s.hasActive && <p className="mt-1 text-[11px] font-semibold text-accent-2">● challenge waiting</p>}
+      {s.hasActive && <p className="mt-1 text-[11px] font-semibold text-accent-2">● task waiting</p>}
       <p className="mt-2 text-2xl font-bold tabular-nums">
         {value == null ? "—" : Math.round(value)}
         <span className="text-sm font-medium text-muted">/100</span>

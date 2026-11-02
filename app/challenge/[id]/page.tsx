@@ -43,12 +43,12 @@ export default async function ChallengePage({ params, searchParams }: { params: 
         <>
           <div className="rounded-3xl bg-gradient-to-br from-accent-2/25 to-accent/20 p-5 text-center">
             <p className="text-3xl">⏳</p>
-            <p className="mt-1 text-lg font-bold">Your challenge is waiting for you</p>
+            <p className="mt-1 text-lg font-bold">Your task is waiting for you</p>
             <p className="mt-1 text-sm text-muted">
               Accepted {waitingSince.toLocaleDateString(undefined, { day: "numeric", month: "short" })}. Take your time — it&apos;s saved even if you close the app.
             </p>
           </div>
-          {sp.accepted && <Notice tone="success">✓ Challenge accepted. Come back here after you try it.</Notice>}
+          {sp.accepted && <Notice tone="success">✓ Task accepted. Come back here after you try it.</Notice>}
 
           {sp.feedback ? (
             <Card>
@@ -61,9 +61,9 @@ export default async function ChallengePage({ params, searchParams }: { params: 
                 <ButtonLink href={`/challenge/${ch.id}?feedback=1`}>✓ I tried it — submit my experience</ButtonLink>
                 {ch.conversationId && <Link href={`/coach/${ch.conversationId}`} className={btnSecondary}>💬 Ask AI for help</Link>}
               </div>
-              <ActionForm action={abandonChallengeAction} confirm="Abandon this challenge? That's okay — it won't count against you." className="pt-2 text-center">
+              <ActionForm action={abandonChallengeAction} confirm="Abandon this task? That's okay — it won't count against you." className="pt-2 text-center">
                 <input type="hidden" name="challengeId" value={ch.id} />
-                <button className="text-sm text-muted underline">Abandon challenge</button>
+                <button className="text-sm text-muted underline">Abandon task</button>
               </ActionForm>
             </>
           )}
@@ -111,17 +111,17 @@ export default async function ChallengePage({ params, searchParams }: { params: 
               )}
 
               {next ? (
-                <ButtonLink href={next.status === "proposed" && next.conversationId ? `/coach/${next.conversationId}` : `/challenge/${next.id}`}>Go to your next challenge →</ButtonLink>
+                <ButtonLink href={next.status === "proposed" && next.conversationId ? `/coach/${next.conversationId}` : `/challenge/${next.id}`}>Go to your next task →</ButtonLink>
               ) : (
                 <ActionForm action={nextChallengeAction}>
                   <input type="hidden" name="challengeId" value={ch.id} />
-                  <SubmitButton pendingText="Designing your next challenge…">🎯 Get my next challenge</SubmitButton>
+                  <SubmitButton pendingText="Designing your next task…">🎯 Get my next task</SubmitButton>
                 </ActionForm>
               )}
             </>
           )}
 
-          <More label="The challenge">
+          <More label="The task">
             <ChallengeBody c={view} />
           </More>
           {responses.length > 0 && (
@@ -139,7 +139,7 @@ export default async function ChallengePage({ params, searchParams }: { params: 
       {ch.status === "abandoned" && (
         <>
           <Card className="text-center">
-            <p className="text-lg font-semibold">Challenge set aside</p>
+            <p className="text-lg font-semibold">Task set aside</p>
             <p className="mt-1 text-sm text-muted">That&apos;s fine — it doesn&apos;t count against you. Your coach will suggest something that fits better.</p>
           </Card>
           <Card><ChallengeBody c={view} /></Card>
@@ -147,7 +147,7 @@ export default async function ChallengePage({ params, searchParams }: { params: 
         </>
       )}
 
-      {ch.status === "discarded" && <Notice>This challenge was replaced by another one.</Notice>}
+      {ch.status === "discarded" && <Notice>This task was replaced by another one.</Notice>}
     </AppShell>
   );
 }

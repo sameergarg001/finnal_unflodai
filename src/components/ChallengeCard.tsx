@@ -17,7 +17,7 @@ export interface ChallengeView {
   status: string;
 }
 
-/** Full challenge content (used in chat and on the challenge screen). */
+/** Full task content (used in chat and on the task screen). */
 export function ChallengeBody({ c, compact }: { c: ChallengeView; compact?: boolean }) {
   return (
     <div className="space-y-3.5">

@@ -188,7 +188,7 @@ async function handleInterviewAnswer(userId: string, conv: { id: string; skillId
       barriers: [],
       startSubskill: first?.key ?? null,
       firstFocus: first ? `Start with ${first.label.toLowerCase()}.` : "Start with one small, real action.",
-      summary: `Thanks, ${ctx.firstName}. We'll start with ${first ? first.label.toLowerCase() : "small steps"} and build up at a pace that fits ${timeline.toLowerCase()}. Here's your first small challenge.`,
+      summary: `Thanks, ${ctx.firstName}. We'll start with ${first ? first.label.toLowerCase() : "small steps"} and build up at a pace that fits ${timeline.toLowerCase()}. Here's your first small task.`,
     };
   }
   const startSubskill = ctx.skill.subskills.find((x) => x.key === plan.startSubskill)?.key ?? ctx.skill.subskills[0]?.key ?? null;
@@ -341,7 +341,7 @@ function scriptedTurn(userTurns: string[], c: ConvContext): CoachTurn {
   const situation = n >= 2 ? (c.situation || userTurns[1].slice(0, 600)) : c.situation ?? "";
   const barriers = n >= 3 ? [...(c.barriers ?? []), last.slice(0, 200)].slice(-4) : c.barriers ?? [];
   if (n >= 3 || /challenge|task|give me/i.test(last)) {
-    return { reply: "Got it — here's a challenge for that.", ready: true, situation, barriers, goal, focusSubskill: null };
+    return { reply: "Got it — here's a task for that.", ready: true, situation, barriers, goal, focusSubskill: null };
   }
   const reply = n === 1 ? "Where do you usually face this — what kind of situation?" : "What stops you in that moment? What goes through your mind?";
   return { reply, ready: false, situation, barriers, goal, focusSubskill: null };
@@ -474,7 +474,7 @@ async function proposeChallenge(userId: string, conversationId: string, opts: { 
       title: fb.title,
       struggle: c.barriers?.[0] ?? ctx.weaknesses[0] ?? `Building your ${conv.skill.name.toLowerCase()}`,
       objective: fb.whyThisChallenge,
-      instructions: multi ? `Built-in challenge (your AI coach is offline right now). ${fb.whyThisChallenge}` : fb.instructions,
+      instructions: multi ? `Built-in task (your AI coach is offline right now). ${fb.whyThisChallenge}` : fb.instructions,
       steps: multi ? sentences.slice(0, 7) : [],
       expectedOutcome: fb.successCriteria.join("; "),
       subskill: "",
@@ -525,23 +525,23 @@ export type ChallengeAction = "accept" | "another" | "easier" | "explain";
 
 export async function challengeAction(userId: string, challengeId: string, action: ChallengeAction) {
   const ch = await db.challenge.findFirst({ where: { id: challengeId, userId }, include: { skill: true } });
-  if (!ch?.conversationId) throw new CoachError("Challenge not found");
-  if (ch.status !== "proposed" && action !== "explain") throw new CoachError("This challenge can't be changed any more");
+  if (!ch?.conversationId) throw new CoachError("Task not found");
+  if (ch.status !== "proposed" && action !== "explain") throw new CoachError("This task can't be changed any more");
   checkAiBudget(userId);
 
   switch (action) {
     case "accept": {
       const other = await db.challenge.findFirst({ where: { userId, skillId: ch.skillId, status: "active" } });
-      if (other) throw new CoachError(`You already have an active ${ch.skill.name} challenge. Finish or abandon it first.`);
+      if (other) throw new CoachError(`You already have an active ${ch.skill.name} task. Finish or abandon it first.`);
       const now = new Date();
       await db.challenge.update({ where: { id: ch.id }, data: { status: "active", acceptedAt: now } });
       await db.conversation.update({ where: { id: ch.conversationId }, data: { phase: "active" } });
-      await addMessage(ch.conversationId, "user", "I'll take this challenge.", "event", ch.id);
-      await addMessage(ch.conversationId, "coach", "Great. Your challenge is saved — do it whenever the moment comes, then come back and tell me how it went. I'll wait. If you get stuck, ask me here.", "text", ch.id);
+      await addMessage(ch.conversationId, "user", "I'll take this task.", "event", ch.id);
+      await addMessage(ch.conversationId, "coach", "Great. Your task is saved — do it whenever the moment comes, then come back and tell me how it went. I'll wait. If you get stuck, ask me here.", "text", ch.id);
       return ch;
     }
     case "another":
-      await addMessage(ch.conversationId, "user", "Give me another challenge.", "event");
+      await addMessage(ch.conversationId, "user", "Give me another task.", "event");
       return proposeChallenge(userId, ch.conversationId, { mode: "another" });
     case "easier":
       await addMessage(ch.conversationId, "user", "Make it easier.", "event");
@@ -550,7 +550,7 @@ export async function challengeAction(userId: string, challengeId: string, actio
       const ctx = await buildSkillContext(userId, ch.skillId);
       await addMessage(ch.conversationId, "user", "Explain how to do it.", "event");
       const msgs = await db.conversationMessage.findMany({ where: { conversationId: ch.conversationId }, orderBy: { createdAt: "desc" }, take: 6 });
-      await addMessage(ch.conversationId, "coach", await helpWith(ctx, ch, "Explain how to do this challenge, step by step, for my situation.", msgs.reverse()), "text", ch.id);
+      await addMessage(ch.conversationId, "coach", await helpWith(ctx, ch, "Explain how to do this task, step by step, for my situation.", msgs.reverse()), "text", ch.id);
       return ch;
     }
   }
@@ -559,7 +559,7 @@ export async function challengeAction(userId: string, challengeId: string, actio
 /** The user gives up on an active challenge. Not a failure: difficulty eases a little. */
 export async function abandonChallenge(userId: string, challengeId: string) {
   const ch = await db.challenge.findFirst({ where: { id: challengeId, userId, status: "active" } });
-  if (!ch) throw new CoachError("This challenge isn't active");
+  if (!ch) throw new CoachError("This task isn't active");
   await db.challenge.update({ where: { id: ch.id }, data: { status: "abandoned", completedAt: new Date() } });
   const sc = await db.skillScore.findUnique({ where: { userId_skillId: { userId, skillId: ch.skillId } } });
   if (sc && sc.difficulty > 1) {
@@ -583,7 +583,7 @@ export interface FeedbackInput {
 /** Saves the user's experience (instant). Analysis runs in the background. */
 export async function saveFeedback(userId: string, challengeId: string, input: FeedbackInput) {
   const ch = await db.challenge.findFirst({ where: { id: challengeId, userId, status: "active" } });
-  if (!ch) throw new CoachError("This challenge isn't waiting for feedback");
+  if (!ch) throw new CoachError("This task isn't waiting for feedback");
   const answers = input.responses.filter((r) => r.answer.trim());
   if (!answers.length) throw new CoachError("Tell your coach at least a little about what happened");
   const find = (re: RegExp) => answers.find((r) => re.test(r.question))?.answer ?? null;
@@ -624,7 +624,7 @@ function heuristicAnalysis(status: CompletionStatus, responses: { question: stri
   const good = responses.find((r) => /went well|helped|better/i.test(r.question))?.answer?.trim();
   const detail = Math.min(1, text.length / 600);
   return {
-    wentWell: good ? [good.slice(0, 200)] : status === "completed" ? ["You followed through on the challenge"] : [],
+    wentWell: good ? [good.slice(0, 200)] : status === "completed" ? ["You followed through on the task"] : [],
     toImprove: hard ? [hard.slice(0, 200)] : [],
     evidence: [],
     painPoints: hard ? [hard.slice(0, 200)] : [],
@@ -637,7 +637,7 @@ function heuristicAnalysis(status: CompletionStatus, responses: { question: stri
     insights: [],
     feedback:
       status === "completed" || status === "partial"
-        ? "Thanks for reporting back. (Basic analysis — the AI coach was unavailable.) Your next challenge will build on how it went."
+        ? "Thanks for reporting back. (Basic analysis — the AI coach was unavailable.) Your next task will build on how it went."
         : "Thanks for being honest — that's useful. (Basic analysis — the AI coach was unavailable.) Next time we'll try something smaller and easier to start.",
   };
 }
@@ -761,7 +761,7 @@ export async function analyzeFeedback(reflectionId: string) {
   if (ch.conversationId) {
     await db.conversation.update({
       where: { id: ch.conversationId },
-      data: { phase: "reviewed", summary: `Last challenge: ${ch.title} (${labelStatus(status)}). Next focus: ${analysis.nextFocus}` },
+      data: { phase: "reviewed", summary: `Last task: ${ch.title} (${labelStatus(status)}). Next focus: ${analysis.nextFocus}` },
     });
     await addMessage(ch.conversationId, "coach", analysis.feedback, "report", ch.id);
   }
@@ -771,7 +771,7 @@ export async function analyzeFeedback(reflectionId: string) {
 /** Next challenge right after a reviewed feedback: no need to ask again, the coach knows the context. */
 export async function nextChallenge(userId: string, challengeId: string) {
   const ch = await db.challenge.findFirst({ where: { id: challengeId, userId, status: "done" }, include: { reflection: { include: { analysis: true } } } });
-  if (!ch?.conversationId) throw new CoachError("Challenge not found");
+  if (!ch?.conversationId) throw new CoachError("Task not found");
   if (!ch.reflection?.analysis) {
     if (ch.reflection) await analyzeFeedback(ch.reflection.id);
   }
@@ -780,7 +780,7 @@ export async function nextChallenge(userId: string, challengeId: string) {
   if (active) return { conversationId: active.conversationId! };
   const existing = await db.challenge.findFirst({ where: { conversationId: ch.conversationId, status: "proposed" } });
   if (!existing) {
-    await addMessage(ch.conversationId, "user", "Give me my next challenge.", "event");
+    await addMessage(ch.conversationId, "user", "Give me my next task.", "event");
     await proposeChallenge(userId, ch.conversationId, { mode: "new" });
   }
   return { conversationId: ch.conversationId };

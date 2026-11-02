@@ -72,12 +72,12 @@ function ChallengeMessage({ c, current, onTell }: { c: ChallengeView; current: b
   const [state, action] = useActionState(challengeActionAction, undefined);
   return (
     <div className="rounded-3xl border border-accent/40 bg-gradient-to-b from-accent/10 to-card p-5">
-      <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-accent">🎯 Your challenge</p>
+      <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-accent">🎯 Today&apos;s task</p>
       <ChallengeBody c={c} compact />
       {current && c.status === "proposed" ? (
         <form action={action} className="mt-5 grid grid-cols-2 gap-2">
           <input type="hidden" name="challengeId" value={c.id} />
-          <ActionButton action="accept" primary>Take this challenge</ActionButton>
+          <ActionButton action="accept" primary>Take this task</ActionButton>
           <ActionButton action="another">Another one</ActionButton>
           <ActionButton action="easier">Make it easier</ActionButton>
           <ActionButton action="explain">Explain how</ActionButton>
@@ -86,7 +86,7 @@ function ChallengeMessage({ c, current, onTell }: { c: ChallengeView; current: b
         </form>
       ) : (
         <p className="mt-4 text-xs text-muted">
-          {c.status === "active" ? <Link href={`/challenge/${c.id}`} className="font-semibold text-accent">Accepted — open challenge →</Link> : c.status === "done" ? <Link href={`/challenge/${c.id}`} className="font-semibold text-accent">Completed — see analysis →</Link> : c.status === "discarded" ? "Replaced" : c.status}
+          {c.status === "active" ? <Link href={`/challenge/${c.id}`} className="font-semibold text-accent">Accepted — open task →</Link> : c.status === "done" ? <Link href={`/challenge/${c.id}`} className="font-semibold text-accent">Completed — see analysis →</Link> : c.status === "discarded" ? "Replaced" : c.status}
         </p>
       )}
     </div>
@@ -94,9 +94,9 @@ function ChallengeMessage({ c, current, onTell }: { c: ChallengeView; current: b
 }
 
 const QUICK: Record<string, string[]> = {
-  understanding: ["Just give me a challenge"],
+  understanding: ["Just give me a task"],
   active: ["I'm stuck — how do I start?", "What should I say first?"],
-  reviewed: ["Give me my next challenge", "I want to work on something else"],
+  reviewed: ["Give me my next task", "I want to work on something else"],
 };
 
 export function CoachChat({

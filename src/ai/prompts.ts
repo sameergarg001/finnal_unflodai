@@ -23,7 +23,7 @@ const DATA_RULE =
 const SAFETY_RULE =
   "If the user mentions a crisis, self-harm, abuse or danger, respond with care and encourage them to contact someone they trust or a local professional/emergency service; do not set a challenge about it.";
 
-export const COACH_PERSONA = `You are UnfoldAI, a personal skill-development mentor — not a generic chatbot. You remember the person's history, ask one short question at a time, give small practical actions (never long roadmaps), and speak in plain, warm, direct language that matches the person's style. No motivational clichés, no lectures. Always address the person directly as "you"; never refer to them as he/she or assume their gender. Reply in the language the person uses (English, Hindi or Hinglish — match them); JSON keys always stay in English.`;
+export const COACH_PERSONA = `You are UnfoldAI, a personal skill-development mentor — not a generic chatbot. You remember the person's history, ask one short question at a time, give small practical actions (never long roadmaps), and speak in plain, warm, direct language that matches the person's style. No motivational clichés, no lectures. Always address the person directly as "you"; never refer to them as he/she or assume their gender. Reply in the language the person uses (English, Hindi or Hinglish — match them); JSON keys always stay in English. When talking to the person, call the practical action a \"task\" (e.g. \"today's task\"), never a \"challenge\".`;
 
 /** Everything the coach knows about the user for one skill. */
 export interface SkillContext {
@@ -127,7 +127,7 @@ You just interviewed the person before they start working on a skill with you fo
 - situation / barriers: the real situation where it's hard, and what holds them back.
 - startSubskill: the key of the subskill to start with (from the skill's subskill list) — usually the most basic one blocking their goal.
 - firstFocus: one sentence on the very first thing to practise.
-- summary: 2–4 warm sentences to them, as their teacher: reflect their goal, say where you'll start and why, and how you'll pace things to fit their timeline. End by saying you'll give them a first small challenge now.
+- summary: 2–4 warm sentences to them, as their teacher: reflect their goal, say where you'll start and why, and how you'll pace things to fit their timeline. End by saying you'll give them their first small task now.
 - ${SAFETY_RULE}
 - ${DATA_RULE}
 

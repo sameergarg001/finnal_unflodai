@@ -126,7 +126,7 @@ function fallbackBrief(i: BriefInput): { message: string; focus: string } {
   const hello = `Good ${i.partOfDay}, ${i.firstName}.`;
   if (!i.lastStep) {
     return {
-      message: `${hello} Welcome to UnfoldAI. Open any skill, tell me what's going on, and I'll give you one practical challenge. When you've tried it, tell me how it went and I'll shape the next one around it.`,
+      message: `${hello} Welcome to UnfoldAI. Open any skill, tell me what's going on, and I'll give you one practical task. When you've tried it, tell me how it went and I'll shape the next one around it.`,
       focus: i.suggestedSkill ? `Start with ${i.suggestedSkill.name}.` : "Pick one skill and a real situation.",
     };
   }

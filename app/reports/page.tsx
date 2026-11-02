@@ -22,7 +22,7 @@ export default async function ReportsPage() {
       </div>
 
       {!hasData ? (
-        <EmptyState icon="📈" title="Your reports start with your first challenge" body="Everything here is built from challenges you actually report on — nothing is estimated or invented." action={<Link href="/dashboard" className="font-semibold text-accent">Pick a skill →</Link>} />
+        <EmptyState icon="📈" title="Your reports start with your first task" body="Everything here is built from tasks you actually report on — nothing is estimated or invented." action={<Link href="/dashboard" className="font-semibold text-accent">Pick a skill →</Link>} />
       ) : (
         <Suspense fallback={<Card className="space-y-2"><Skeleton className="h-4 w-1/3" /><Skeleton className="h-14" /></Card>}>
           <OverallReview userId={user.id} />
@@ -48,7 +48,7 @@ export default async function ReportsPage() {
       <SectionTitle>Skill progress</SectionTitle>
       <Card>
         <SelfVsEvidence rows={r.cards.map((c) => ({ name: c.name, self: c.selfScore, evidence: c.evidenceScore }))} />
-        <p className="mt-4 text-xs text-muted">Self-assessment is your own rating. UnfoldAI&apos;s assessment only moves with evidence from challenges (— = not assessed yet).</p>
+        <p className="mt-4 text-xs text-muted">Self-assessment is your own rating. UnfoldAI&apos;s assessment only moves with evidence from tasks (— = not assessed yet).</p>
       </Card>
 
       {r.mostImproved.length > 0 && (
@@ -84,7 +84,7 @@ export default async function ReportsPage() {
           <SectionTitle>Consistency</SectionTitle>
           <Card>
             <WeeklyBars weeks={r.consistency} />
-            <p className="mt-1 text-xs text-muted">Challenges you reported on, per week (last 8 weeks).</p>
+            <p className="mt-1 text-xs text-muted">Tasks you reported on, per week (last 8 weeks).</p>
           </Card>
         </>
       )}

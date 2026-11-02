@@ -13,7 +13,7 @@ export function NextStepCard({ step }: { step: NextStep }) {
       {step.kind === "feedback" && (
         <>
           <p className="mt-2 text-lg font-bold leading-snug">{step.title}</p>
-          <p className="mt-1 text-sm text-muted">{step.skill} challenge · tried it? Tell your coach how it went.</p>
+          <p className="mt-1 text-sm text-muted">{step.skill} task · tried it? Tell your coach how it went.</p>
           <div className="mt-4 grid grid-cols-[2fr_1fr] gap-2">
             <Link href={`/challenge/${step.challengeId}?feedback=1`} className={btnPrimary}>✓ I tried it</Link>
             <Link href={`/challenge/${step.challengeId}`} className={btnSecondary}>View</Link>
@@ -25,17 +25,17 @@ export function NextStepCard({ step }: { step: NextStep }) {
         <>
           <p className="mt-2 text-lg font-bold leading-snug">{step.emoji} Continue with {step.teacher}</p>
           <p className="text-sm text-muted">your {step.skill} teacher</p>
-          <p className="mt-1 text-sm text-muted">{step.proposedTitle ? `A challenge is waiting for your answer: “${step.proposedTitle}”` : "You were in the middle of a conversation."}</p>
+          <p className="mt-1 text-sm text-muted">{step.proposedTitle ? `A task is waiting for your answer: “${step.proposedTitle}”` : "You were in the middle of a conversation."}</p>
           <div className="mt-4"><Link href={`/coach/${step.conversationId}`} className={btnPrimary}>Continue →</Link></div>
         </>
       )}
       {step.kind === "next" && (
         <>
-          <p className="mt-2 text-lg font-bold leading-snug">Ready for your next {step.skill} challenge?</p>
+          <p className="mt-2 text-lg font-bold leading-snug">Ready for your next {step.skill} task?</p>
           {step.nextFocus && <p className="mt-1 text-sm text-muted">Focus: {step.nextFocus}</p>}
           <ActionForm action={nextChallengeAction} className="mt-4">
             <input type="hidden" name="challengeId" value={step.challengeId} />
-            <SubmitButton pendingText="Designing your challenge…">🎯 Get my next challenge</SubmitButton>
+            <SubmitButton pendingText="Designing your task…">🎯 Get my next task</SubmitButton>
           </ActionForm>
         </>
       )}
@@ -59,7 +59,7 @@ export function NextStepCard({ step }: { step: NextStep }) {
 export function HowItWorks() {
   const steps = [
     ["💬", "Tell your coach", "Pick a skill and say what's going on — 2–3 quick questions."],
-    ["🎯", "Get one challenge", "A small, real-life task made for your situation."],
+    ["🎯", "Get today's task", "One small, real-life action made for your situation."],
     ["📈", "Report back & grow", "Say how it went. Your coach analyses it and plans the next step."],
   ];
   return (

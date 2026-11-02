@@ -23,7 +23,7 @@ export default async function AssessmentPage({ searchParams }: { searchParams: P
         <h1 className="mt-1 text-2xl font-bold">Rate your core skills</h1>
         <p className="mx-auto mt-2 max-w-sm text-sm text-muted">
           Tap the level that feels true today (you can fine-tune 0–100). This is your own <b className="text-fg">self-assessment</b> — not a test or a
-          scientific measure. UnfoldAI tracks real progress separately, from the challenges you complete.
+          scientific measure. UnfoldAI tracks real progress separately, from the tasks you complete.
         </p>
       </div>
       <AssessmentForm

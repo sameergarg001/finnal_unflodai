@@ -271,7 +271,7 @@ export async function redoInterviewAction(_: FormState, form: FormData): Promise
   const user = await requireUser();
   const skillId = String(form.get("skillId") ?? "");
   const active = await db.challenge.findFirst({ where: { userId: user.id, skillId, status: "active" } });
-  if (active) return { error: "Finish or abandon your active challenge first." };
+  if (active) return { error: "Finish or abandon your active task first." };
   let res;
   try {
     res = await startCoachSession(user.id, skillId, { fresh: true, interview: true });

@@ -23,7 +23,7 @@ export default async function WelcomePage({ searchParams }: { searchParams: Prom
   return (
     <AuthScreen title="UnfoldAI" subtitle="Build the skills that move your life forward.">
       <p className="mx-auto mb-10 max-w-xs text-center text-[15px] leading-relaxed text-muted">
-        Your personal AI mentor. Real-life challenges, honest feedback, and progress you can actually see.
+        Your personal AI mentor. Real-life tasks, honest feedback, and progress you can actually see.
       </p>
       <div className="space-y-3">
         {error && ERRORS[error] && <Notice tone="error">{ERRORS[error]}</Notice>}

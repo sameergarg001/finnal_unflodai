@@ -14,10 +14,10 @@ export const dynamic = "force-dynamic";
 const PHASE: Record<string, string> = {
   intake: "Getting to know you",
   understanding: "Talking",
-  proposed: "Challenge to decide",
-  active: "⏳ Challenge waiting",
+  proposed: "Task to decide",
+  active: "⏳ Task waiting",
   feedback: "Analysing your feedback",
-  reviewed: "Ready for next challenge",
+  reviewed: "Ready for next task",
 };
 
 /** Coach hub: all coaching sessions in one place + a general "ask anything" chat. */

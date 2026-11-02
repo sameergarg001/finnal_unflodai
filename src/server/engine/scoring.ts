@@ -85,7 +85,7 @@ export function evidenceUpdate(i: EvidenceInput): EvidenceUpdate {
     delta: actual,
     score,
     confidence,
-    reason: `${what} a difficulty-${i.difficulty} challenge with ${strength >= 0.7 ? "specific" : "some"} evidence${bonuses.length ? `; ${bonuses.join(", ")}` : ""} (+${actual}).`,
+    reason: `${what} a difficulty-${i.difficulty} task with ${strength >= 0.7 ? "specific" : "some"} evidence${bonuses.length ? `; ${bonuses.join(", ")}` : ""} (+${actual}).`,
   };
 }
 

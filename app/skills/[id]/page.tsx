@@ -58,7 +58,7 @@ export default async function SkillPage({ params, searchParams }: { params: Prom
       <Card>
         <p className="text-sm leading-relaxed text-muted">{skill.description}</p>
         <div className="mt-5 space-y-4">
-          <ScoreRow label="UnfoldAI assessment" sub={assessed ? `based on ${sc!.evidenceCount} challenge${sc!.evidenceCount === 1 ? "" : "s"}` : "not assessed yet — complete a challenge"} value={assessed ? sc!.score : null} color={SERIES.evidence} />
+          <ScoreRow label="UnfoldAI assessment" sub={assessed ? `based on ${sc!.evidenceCount} task${sc!.evidenceCount === 1 ? "" : "s"}` : "not assessed yet — complete a task"} value={assessed ? sc!.score : null} color={SERIES.evidence} />
           <ScoreRow label="Your self-assessment" sub="your own rating, not verified" value={sc?.selfScore ?? null} color={SERIES.self} />
         </div>
         <div className="mt-4 flex items-center justify-between border-t border-line pt-4 text-sm">
@@ -82,7 +82,7 @@ export default async function SkillPage({ params, searchParams }: { params: Prom
 
       {active ? (
         <Link href={`/challenge/${active.id}`} className="block rounded-3xl border border-accent-2/30 bg-accent-2/10 p-5 active:scale-[0.99]">
-          <p className="text-xs font-semibold text-accent-2">⏳ Your challenge is waiting for you</p>
+          <p className="text-xs font-semibold text-accent-2">⏳ Your task is waiting for you</p>
           <p className="mt-1 text-lg font-bold">{active.title}</p>
           <p className="mt-1 text-sm text-muted">Tap to see it, ask for help, or tell your coach how it went.</p>
         </Link>
@@ -140,7 +140,7 @@ export default async function SkillPage({ params, searchParams }: { params: Prom
           ))}
         </Card>
       ) : (
-        <EmptyState icon="🎯" title="No challenges yet" body={`Start improving and ${teacher.name} will design your first challenge around your real situation.`} />
+        <EmptyState icon="🎯" title="No tasks yet" body={`Start improving and ${teacher.name} will design your first task around your real situation.`} />
       )}
 
       {plan && !active && (
@@ -157,7 +157,7 @@ export default async function SkillPage({ params, searchParams }: { params: Prom
         <ActionForm action={updateSelfScoreAction} className="space-y-3">
           <input type="hidden" name="skillId" value={skill.id} />
           <SelfScoreSlider initial={sc?.selfScore ?? 50} />
-          <p className="text-xs text-muted">Your self-rating is shown next to UnfoldAI&apos;s assessment. Once there is evidence from challenges, changing it won&apos;t change UnfoldAI&apos;s score.</p>
+          <p className="text-xs text-muted">Your self-rating is shown next to UnfoldAI&apos;s assessment. Once there is evidence from tasks, changing it won&apos;t change UnfoldAI&apos;s score.</p>
           <SubmitButton variant="secondary">Save self-assessment</SubmitButton>
         </ActionForm>
       </More>

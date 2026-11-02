@@ -113,6 +113,15 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
+      <Link href="/mentor" className="flex items-center gap-3 rounded-3xl border border-line bg-card p-4 active:scale-[0.99]">
+        <span className="text-2xl" aria-hidden>💬</span>
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold">Ask anything</p>
+          <p className="text-sm text-muted">A quick question about any situation? Your coach knows your skills and tasks.</p>
+        </div>
+        <span className="text-muted">›</span>
+      </Link>
+
       <SectionTitle>Recent activity</SectionTitle>
       {recent.lastDone || recent.active.length ? (
         <Card className="space-y-4">

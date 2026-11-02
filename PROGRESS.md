@@ -44,6 +44,8 @@ Decisions: keep the current Next.js app (not Expo/MongoDB), follow the new onboa
 ## Log
 
 ### 2026-11-02
+- New **Tasks** tab ✅ All ongoing work in one place: waiting tasks (with "✓ I tried it"), tasks to decide, conversations in progress, tasks being analysed, and recently finished. The tab shows a badge with the number of waiting tasks.
+- Removed the **Coach** tab. Teachers now show on each skill card on Home ("with Aanya"), coach conversations open from Tasks or the skill page, and "Ask anything" is a card on Home. Tabs are now: Home · Tasks · Reports · Profile.
 - Renamed "challenge" → **"task" / "Today's task"** everywhere users see it (screens, coach messages, notifications, public pages). The AI coach is also told to say "task", never "challenge".
 - First-time interview ✅ The first time you work on a skill, its teacher asks 3 quick questions: your goal, a recent moment when it was hard, and by when you want to improve (tap: 2 weeks / 1 month / 3 months / No rush). The AI then makes your **personal plan** (goal, where you are now, timeline + target date, which subskill to start with) and gives the first challenge right away. The plan shows on the skill page; "Redo the interview" is there if goals change. "Skip — just start" is always available.
 - Expert teachers ✅ Every skill now has its own AI teacher with a name, avatar and coaching style — e.g. Aanya 🗣️ (Communication), Kabir 🦁 (Confidence), Meera ⏱️ (Discipline), Arjun 🧩 (Problem-solving), Zoya 🌊 (Adaptability), Rohan 🤝 (Networking) — 24 in total; custom skills get their own coach too. The teacher introduces themselves, coaches in their style, and appears on the skill page, skill cards, Home and a new "Your teachers" grid on the Coach tab.

@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { db } from "@/lib/db";
+import { getCurrentUser } from "@/server/auth/session";
 import { TabBar } from "./TabBar";
 
 /** Mobile app frame: compact top bar, scrolling content, bottom tab bar. */
-export function AppShell({
+export async function AppShell({
   title,
   back,
   right,
@@ -18,6 +20,8 @@ export function AppShell({
   /** Custom header content (replaces the title bar). */
   header?: React.ReactNode;
 }) {
+  const user = tabs ? await getCurrentUser() : null;
+  const taskCount = user ? await db.challenge.count({ where: { userId: user.id, status: "active" } }) : 0;
   return (
     <div className="mx-auto min-h-dvh max-w-md bg-bg">
       <header className="sticky top-0 z-10 bg-bg/85 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
@@ -36,7 +40,7 @@ export function AppShell({
         )}
       </header>
       <main className={`animate-enter space-y-4 px-4 pt-2 ${tabs ? "pb-28" : "pb-10"}`}>{children}</main>
-      {tabs && <TabBar />}
+      {tabs && <TabBar taskCount={taskCount} />}
     </div>
   );
 }

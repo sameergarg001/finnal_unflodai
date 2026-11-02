@@ -12,6 +12,7 @@ export function SkillCard({ s }: { s: SkillCardData }) {
         <p className="font-semibold leading-tight">{s.name}</p>
         <span className="text-lg leading-none" title={`Teacher: ${s.teacher.name}`} aria-hidden>{s.teacher.emoji}</span>
       </div>
+      <p className="mt-0.5 text-[11px] text-muted">with {s.teacher.name}</p>
       {s.hasActive && <p className="mt-1 text-[11px] font-semibold text-accent-2">● task waiting</p>}
       <p className="mt-2 text-2xl font-bold tabular-nums">
         {value == null ? "—" : Math.round(value)}

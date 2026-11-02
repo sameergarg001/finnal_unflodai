@@ -12,6 +12,7 @@ import { startCoachAction } from "../actions";
 export const dynamic = "force-dynamic";
 
 const PHASE: Record<string, string> = {
+  intake: "Getting to know you",
   understanding: "Talking",
   proposed: "Challenge to decide",
   active: "⏳ Challenge waiting",

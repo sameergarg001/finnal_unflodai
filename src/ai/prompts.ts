@@ -55,6 +55,8 @@ export interface SkillContext {
   }[];
   activeChallenge: { title: string; acceptedAt: string } | null;
   lastSessionSummary: string | null;
+  /** The user's plan for this skill, from the first-time interview. */
+  plan: { goal: string; currentLevel: string; timeline: string; targetDate: string | null; startSubskill: string | null; firstFocus: string } | null;
 }
 
 // ─── 1. Situation understanding (coach conversation turn) ─────────────────
@@ -104,6 +106,44 @@ export function coachTurnPrompt(ctx: SkillContext, conversation: { role: string;
   ].join("\n\n");
 }
 
+// ─── 1b. First-time interview → personal plan ─────────────────────────────
+
+export const planSchema = z.object({
+  goal: txt(3, 300),
+  currentLevel: txt(3, 300),
+  situation: txt(0, 600).default(""),
+  barriers: list(txt(0, 200), 4).default([]),
+  startSubskill: txt(0, 60).nullish().transform((v) => v || null),
+  firstFocus: txt(3, 240),
+  summary: txt(10, 700),
+});
+export type SkillPlan = z.infer<typeof planSchema>;
+
+export const PLAN_SYSTEM = `${COACH_PERSONA}
+
+You just interviewed the person before they start working on a skill with you for the first time. From their answers, build a short personal starting plan.
+- goal: what they want to be able to do (their words, made concrete).
+- currentLevel: one honest sentence about where they are now, based on what they described (not a score).
+- situation / barriers: the real situation where it's hard, and what holds them back.
+- startSubskill: the key of the subskill to start with (from the skill's subskill list) — usually the most basic one blocking their goal.
+- firstFocus: one sentence on the very first thing to practise.
+- summary: 2–4 warm sentences to them, as their teacher: reflect their goal, say where you'll start and why, and how you'll pace things to fit their timeline. End by saying you'll give them a first small challenge now.
+- ${SAFETY_RULE}
+- ${DATA_RULE}
+
+Respond with JSON only:
+{"goal": string, "currentLevel": string, "situation": string, "barriers": string[], "startSubskill": string|null, "firstFocus": string, "summary": string}`;
+
+export function planPrompt(ctx: SkillContext, interview: { question: string; answer: string }[], timeline: string): string {
+  return [
+    teacherLine(ctx),
+    userData("user_skill_context", ctx),
+    userData("user_interview", interview),
+    `Their timeline: ${timeline}.`,
+    "Build the plan.",
+  ].join("\n\n");
+}
+
 // ─── 2. Challenge generation ──────────────────────────────────────────────
 
 export const challengeSchema = z.object({
@@ -131,6 +171,7 @@ Rules:
 - Target their identified weaknesses and the next development focus from previous analyses. Don't repeat a previous challenge unless they couldn't attempt it (then make it smaller).
 - Concrete and observable: they must clearly know whether they did it.
 - Match the requested difficulty exactly (1 = very gentle, 5 = bold but safe).
+- If they have a plan, move them toward its goal, starting from its start subskill / first focus, paced to their timeline.
 - Doable soon (today or at the next real opportunity). No money, equipment, or risk.
 - Safe: nothing illegal, deceptive, or harmful to health, relationships, job or finances. ${SAFETY_RULE}
 - title: short and action-like. struggle: their current difficulty in one sentence, in second person. objective: what this builds.

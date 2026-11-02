@@ -4,13 +4,13 @@ import { db } from "@/lib/db";
 import { requireReadyUser } from "@/server/auth/session";
 import { frameworkOf, getSkillForUser, teacherOf } from "@/server/services/skills";
 import { getSkillHistory } from "@/server/services/progress";
-import { labelStatus } from "@/server/services/challenges";
+import { labelStatus, type StoredPlan } from "@/server/services/challenges";
 import { AppShell, More } from "@/components/AppShell";
 import { ActionForm } from "@/components/ActionForm";
 import { SubmitButton } from "@/components/SubmitButton";
 import { SelfScoreSlider } from "@/components/SelfScoreSlider";
 import { Card, DIFFICULTY_NAMES, EmptyState, Notice, Pill, ProgressBar, SERIES, SectionTitle, Sparkline, TeacherAvatar, btnSecondary, input } from "@/components/ui";
-import { removeSkillAction, startCoachAction, updateSelfScoreAction } from "../../actions";
+import { redoInterviewAction, removeSkillAction, startCoachAction, updateSelfScoreAction } from "../../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +25,7 @@ export default async function SkillPage({ params, searchParams }: { params: Prom
     db.userSkill.findUnique({ where: { userId_skillId: { userId: user.id, skillId: id } } }),
     db.skillScore.findUnique({ where: { userId_skillId: { userId: user.id, skillId: id } } }),
     getSkillHistory(user.id, id),
-    db.conversation.findFirst({ where: { userId: user.id, skillId: id, status: "open", phase: { in: ["understanding", "proposed"] } }, orderBy: { updatedAt: "desc" } }),
+    db.conversation.findFirst({ where: { userId: user.id, skillId: id, status: "open", phase: { in: ["intake", "understanding", "proposed"] } }, orderBy: { updatedAt: "desc" } }),
   ]);
   const fw = frameworkOf(skill);
   const teacher = teacherOf(skill);
@@ -38,6 +38,8 @@ export default async function SkillPage({ params, searchParams }: { params: Prom
     if (c.subskill && c.reflection && ["completed", "partial"].includes(c.reflection.completionStatus)) doneBySub.set(c.subskill, (doneBySub.get(c.subskill) ?? 0) + 1);
   }
   const past = history.challenges.filter((c) => c.status !== "active");
+  const plan = (us?.plan ?? null) as StoredPlan | null;
+  const startLabel = plan?.startSubskill ? fw.subskills.find((x) => x.key === plan.startSubskill)?.label : null;
 
   return (
     <AppShell title={skill.name} back="/dashboard">
@@ -64,6 +66,19 @@ export default async function SkillPage({ params, searchParams }: { params: Prom
           <Sparkline values={trend} width={140} height={32} />
         </div>
       </Card>
+
+      {plan && (
+        <Card className="space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold uppercase tracking-wider text-accent-2">📋 Your plan</p>
+            {plan.targetDate && <Pill tone="accent">by {new Date(plan.targetDate).toLocaleDateString(undefined, { day: "numeric", month: "short" })}</Pill>}
+          </div>
+          <PlanRow label="Goal">{plan.goal}</PlanRow>
+          <PlanRow label="Where you are now">{plan.currentLevel}</PlanRow>
+          <PlanRow label="Timeline">{plan.timeline}</PlanRow>
+          <PlanRow label="Starting with">{startLabel ? `${startLabel} — ` : ""}{plan.firstFocus}</PlanRow>
+        </Card>
+      )}
 
       {active ? (
         <Link href={`/challenge/${active.id}`} className="block rounded-3xl border border-accent-2/30 bg-accent-2/10 p-5 active:scale-[0.99]">
@@ -128,6 +143,16 @@ export default async function SkillPage({ params, searchParams }: { params: Prom
         <EmptyState icon="🎯" title="No challenges yet" body={`Start improving and ${teacher.name} will design your first challenge around your real situation.`} />
       )}
 
+      {plan && !active && (
+        <More label="Goals changed? Redo the interview">
+          <p className="mb-3 text-sm text-muted">{teacher.name} will ask the 3 questions again and make a new plan. Your history is kept.</p>
+          <ActionForm action={redoInterviewAction}>
+            <input type="hidden" name="skillId" value={skill.id} />
+            <SubmitButton variant="secondary" pendingText="Opening…">Redo interview</SubmitButton>
+          </ActionForm>
+        </More>
+      )}
+
       <More label="Update my self-assessment">
         <ActionForm action={updateSelfScoreAction} className="space-y-3">
           <input type="hidden" name="skillId" value={skill.id} />
@@ -145,6 +170,15 @@ export default async function SkillPage({ params, searchParams }: { params: Prom
       )}
       {fw.progression && <p className="px-1 text-xs leading-relaxed text-muted">How this skill progresses: {fw.progression}</p>}
     </AppShell>
+  );
+}
+
+function PlanRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">{label}</p>
+      <p className="mt-0.5 text-[15px]">{children}</p>
+    </div>
   );
 }
 

@@ -22,7 +22,7 @@ export async function getNextStep(userId: string): Promise<NextStep | null> {
   }
 
   const open = await db.conversation.findFirst({
-    where: { userId, status: "open", phase: { in: ["understanding", "proposed"] }, updatedAt: { gte: new Date(Date.now() - WEEK) } },
+    where: { userId, status: "open", phase: { in: ["intake", "understanding", "proposed"] }, updatedAt: { gte: new Date(Date.now() - WEEK) } },
     include: { skill: true, challenges: { where: { status: "proposed" }, take: 1 } },
     orderBy: { updatedAt: "desc" },
   });

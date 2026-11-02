@@ -100,6 +100,8 @@ model UserSkill {
   isActive   Boolean   @default(true)
   selectedAt DateTime  @default(now())
   removedAt  DateTime?
+  plan       Json?     // from the first-time interview: { goal, currentLevel, timeline, targetDate, startSubskill, firstFocus, summary }
+  planAt     DateTime?
 
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   skill Skill @relation(fields: [skillId], references: [id])

@@ -266,6 +266,22 @@ export async function startCoachAction(_: FormState, form: FormData): Promise<Fo
   redirect(res.activeChallengeId && !message ? `/challenge/${res.activeChallengeId}` : `/coach/${res.conversationId}`);
 }
 
+/** Re-runs the first-time interview for a skill (e.g. goals changed). History is kept. */
+export async function redoInterviewAction(_: FormState, form: FormData): Promise<FormState> {
+  const user = await requireUser();
+  const skillId = String(form.get("skillId") ?? "");
+  const active = await db.challenge.findFirst({ where: { userId: user.id, skillId, status: "active" } });
+  if (active) return { error: "Finish or abandon your active challenge first." };
+  let res;
+  try {
+    res = await startCoachSession(user.id, skillId, { fresh: true, interview: true });
+  } catch (e) {
+    if (known(e)) return { error: (e as Error).message };
+    throw e;
+  }
+  redirect(`/coach/${res.conversationId}`);
+}
+
 export async function coachMessageAction(_: FormState, form: FormData): Promise<FormState> {
   const user = await requireUser();
   const conversationId = String(form.get("conversationId") ?? "");

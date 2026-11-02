@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { requireReadyUser } from "@/server/auth/session";
-import { getConversationForUser } from "@/server/services/challenges";
+import { getConversationForUser, quickRepliesFor } from "@/server/services/challenges";
 import { toChallengeView } from "@/server/views";
 import { teacherOf } from "@/server/services/skills";
 import { TeacherAvatar } from "@/components/ui";
@@ -11,6 +11,7 @@ import { CoachChat } from "@/components/CoachChat";
 export const dynamic = "force-dynamic";
 
 const PLACEHOLDER: Record<string, string> = {
+  intake: "Type your answer…",
   understanding: "Type your answer…",
   proposed: "Tell me more about your situation…",
   active: "Stuck? Ask your coach for help…",
@@ -31,6 +32,7 @@ export default async function CoachPage({ params }: { params: Promise<{ id: stri
       conversationId={conv.id}
       phase={conv.phase}
       activeChallengeId={conv.challenges.find((c) => c.status === "active")?.id ?? null}
+      quick={quickRepliesFor(conv)}
       placeholder={PLACEHOLDER[conv.phase] ?? "Message your coach…"}
       challenges={challenges}
       messages={conv.messages.map((m) => ({ id: m.id, role: m.role, kind: m.kind, content: m.content, challengeId: m.challengeId }))}

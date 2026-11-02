@@ -106,6 +106,7 @@ export function CoachChat({
   phase,
   placeholder,
   activeChallengeId,
+  quick,
 }: {
   conversationId: string;
   messages: Msg[];
@@ -113,7 +114,10 @@ export function CoachChat({
   phase: string;
   placeholder: string;
   activeChallengeId?: string | null;
+  /** Server-provided quick replies (override the per-phase defaults). */
+  quick?: string[] | null;
 }) {
+  const chips = quick ?? QUICK[phase] ?? [];
   const [state, action] = useActionState(coachMessageAction, undefined);
   const formRef = useRef<HTMLFormElement>(null);
   const boxRef = useRef<HTMLTextAreaElement>(null);
@@ -135,6 +139,14 @@ export function CoachChat({
             return <ChallengeMessage key={m.id} c={challenges[m.challengeId]} current={m.challengeId === currentChallengeId} onTell={() => boxRef.current?.focus()} />;
           }
           if (m.kind === "event") return <p key={m.id} className="text-center text-xs text-muted">{m.content}</p>;
+          if (m.kind === "plan") {
+            return (
+              <div key={m.id} className="rounded-3xl border border-accent-2/40 bg-accent-2/10 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wider text-accent-2">📋 Your plan</p>
+                <p className="mt-1.5 whitespace-pre-line text-[15px] leading-relaxed">{m.content}</p>
+              </div>
+            );
+          }
           if (m.kind === "report") {
             return (
               <Bubble key={m.id} role="coach">
@@ -154,14 +166,14 @@ export function CoachChat({
         <div className="space-y-3 pb-2"><PendingMessage /></div>
         <input type="hidden" name="conversationId" value={conversationId} />
         {state?.error && <Notice tone="error">{state.error}</Notice>}
-        {(QUICK[phase] || (phase === "active" && activeChallengeId)) && (
+        {(chips.length > 0 || (phase === "active" && activeChallengeId)) && (
           <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
             {phase === "active" && activeChallengeId && (
               <Link href={`/challenge/${activeChallengeId}?feedback=1`} className="shrink-0 rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white">
                 ✓ I tried it — report back
               </Link>
             )}
-            {(QUICK[phase] ?? []).map((q) => (
+            {chips.map((q) => (
               <button
                 key={q}
                 type="button"

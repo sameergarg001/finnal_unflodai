@@ -124,3 +124,13 @@ test("built-in next steps never repeat and target the pain point", async () => {
   assert.ok(third.title.startsWith("Try again:"));
   assert.ok(third.instructions.includes("Freezing when seniors talk"));
 });
+
+test("interview timeline answers become a label and target date", async () => {
+  const { parseTimeline } = await import("../services/challenges");
+  const now = new Date("2026-11-02T00:00:00Z");
+  assert.deepEqual(parseTimeline("No rush", now), { timeline: "No rush — steady progress", targetDate: null });
+  assert.equal(parseTimeline("In 2 weeks", now).targetDate, "2026-11-16");
+  assert.equal(parseTimeline("In 1 month", now).targetDate, "2026-12-02");
+  assert.equal(parseTimeline("3 mahine mein", now).timeline, "About 3 months");
+  assert.equal(parseTimeline("In 3 months", now).targetDate, "2027-01-31");
+});

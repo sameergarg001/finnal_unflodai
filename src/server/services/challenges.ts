@@ -6,6 +6,7 @@ import {
   CHALLENGE_SYSTEM,
   COACH_TURN_SYSTEM,
   HELP_SYSTEM,
+  PLAN_SYSTEM,
   analysisPrompt,
   analysisSchema,
   challengePrompt,
@@ -13,11 +14,14 @@ import {
   coachTurnPrompt,
   coachTurnSchema,
   helpPrompt,
+  planPrompt,
+  planSchema,
   type Analysis,
   type ChallengeRequest,
   type CoachTurn,
   type GeneratedChallenge,
   type SkillContext,
+  type SkillPlan,
 } from "@/ai/prompts";
 import { rateLimit } from "@/lib/rateLimit";
 import { fallbackChallenge } from "../engine/fallbackChallenges";
@@ -51,7 +55,7 @@ export type AnalysisReport = { wentWell: string[]; toImprove: string[]; nextFocu
 
 /** Gathers everything the coach should know about the user for one skill. */
 export async function buildSkillContext(userId: string, skillId: string): Promise<SkillContext> {
-  const [user, skill, sc, recent, active, lastConv, insights] = await Promise.all([
+  const [user, skill, sc, recent, active, lastConv, insights, us] = await Promise.all([
     db.user.findUniqueOrThrow({ where: { id: userId }, include: { profile: true } }),
     db.skill.findUniqueOrThrow({ where: { id: skillId } }),
     db.skillScore.findUnique({ where: { userId_skillId: { userId, skillId } } }),
@@ -64,6 +68,7 @@ export async function buildSkillContext(userId: string, skillId: string): Promis
     db.challenge.findFirst({ where: { userId, skillId, status: "active" } }),
     db.conversation.findFirst({ where: { userId, skillId, summary: { not: null } }, orderBy: { updatedAt: "desc" } }),
     recallInsights(userId, skillId, 8),
+    db.userSkill.findUnique({ where: { userId_skillId: { userId, skillId } }, select: { plan: true } }),
   ]);
   const fw = frameworkOf(skill);
   const teacher = teacherOf(skill);
@@ -104,7 +109,101 @@ export async function buildSkillContext(userId: string, skillId: string): Promis
     }),
     activeChallenge: active ? { title: active.title, acceptedAt: (active.acceptedAt ?? active.assignedAt).toISOString() } : null,
     lastSessionSummary: lastConv?.summary ?? null,
+    plan: (us?.plan as StoredPlan | null) ?? null,
   };
+}
+
+// ─── First-time interview ────────────────────────────────────────────────
+
+export type StoredPlan = {
+  goal: string;
+  currentLevel: string;
+  timeline: string;
+  targetDate: string | null;
+  startSubskill: string | null;
+  firstFocus: string;
+  summary: string;
+};
+
+export const TIMELINE_CHOICES = ["In 2 weeks", "In 1 month", "In 3 months", "No rush"];
+
+const interviewQuestions = (skill: string) => [
+  `What would you like to be able to do in ${skill.toLowerCase()}? Imagine it's going really well — what does that look like?`,
+  `Tell me about a recent moment when ${skill.toLowerCase()} felt hard for you. What happened?`,
+  "By when would you like to see a real difference?",
+];
+const SKIP_INTERVIEW = "Skip — just start";
+
+/** Turns a free-text timeline answer into a label and a target date. */
+export function parseTimeline(answer: string, now = new Date()): { timeline: string; targetDate: string | null } {
+  const a = answer.toLowerCase();
+  if (/no rush|no deadline|koi jaldi|whenever|not sure|skip/.test(a)) return { timeline: "No rush — steady progress", targetDate: null };
+  const n = Number(/(\d+)/.exec(a)?.[1] ?? 1);
+  let days: number | null = null;
+  if (/week|hafte|hafta/.test(a)) days = 7 * n;
+  else if (/month|mahin/.test(a)) days = 30 * n;
+  else if (/day|din/.test(a)) days = n;
+  else if (/year|saal/.test(a)) days = 365 * n;
+  if (!days) return { timeline: answer.trim().slice(0, 60) || "No rush — steady progress", targetDate: null };
+  days = Math.min(days, 730);
+  const target = new Date(now.getTime() + days * 86_400_000);
+  const label = days <= 14 ? `${Math.round(days / 7) || 1} week${days > 7 ? "s" : ""}` : days < 60 ? `${Math.round(days / 30) || 1} month` : `${Math.round(days / 30)} months`;
+  return { timeline: `About ${label}`, targetDate: target.toISOString().slice(0, 10) };
+}
+
+/** Quick-reply buttons for the current state of a conversation. */
+export function quickRepliesFor(conv: { phase: string; context: unknown }): string[] | null {
+  if (conv.phase !== "intake") return null;
+  const step = ((conv.context ?? {}) as ConvContext).intake?.length ?? 0;
+  return step === 2 ? TIMELINE_CHOICES : [SKIP_INTERVIEW];
+}
+
+async function handleInterviewAnswer(userId: string, conv: { id: string; skillId: string; context: unknown; skill: { name: string; rubric: unknown } }, message: string) {
+  const c = (conv.context ?? {}) as ConvContext;
+  const questions = interviewQuestions(conv.skill.name);
+  const intake = [...(c.intake ?? [])];
+  const skipping = message.trim() === SKIP_INTERVIEW;
+  if (!skipping) intake.push({ question: questions[intake.length], answer: message.slice(0, 1500) });
+
+  if (!skipping && intake.length < questions.length) {
+    await db.conversation.update({ where: { id: conv.id }, data: { context: { ...c, intake } } });
+    const ack = intake.length === 1 ? "Thanks, that helps. " : "Okay. ";
+    await addMessage(conv.id, "coach", ack + questions[intake.length]);
+    return;
+  }
+
+  // Interview done (or skipped) → build the plan, then propose the first challenge.
+  const ctx = await buildSkillContext(userId, conv.skillId);
+  const { timeline, targetDate } = parseTimeline(intake[2]?.answer ?? "No rush");
+  let plan: SkillPlan;
+  try {
+    plan = (await generateStructured(planSchema, { system: PLAN_SYSTEM, prompt: planPrompt(ctx, intake, timeline), temperature: 0.4, timeoutMs: 45_000 })).data;
+  } catch (e) {
+    console.warn("[interview] AI plan failed, using basic plan:", (e as Error).message);
+    const first = ctx.skill.subskills[0];
+    plan = {
+      goal: intake[0]?.answer ?? `Get better at ${ctx.skill.name.toLowerCase()}`,
+      currentLevel: intake[1]?.answer ? `Finds it hard when: ${intake[1].answer.slice(0, 200)}` : "Just getting started",
+      situation: intake[1]?.answer ?? "",
+      barriers: [],
+      startSubskill: first?.key ?? null,
+      firstFocus: first ? `Start with ${first.label.toLowerCase()}.` : "Start with one small, real action.",
+      summary: `Thanks, ${ctx.firstName}. We'll start with ${first ? first.label.toLowerCase() : "small steps"} and build up at a pace that fits ${timeline.toLowerCase()}. Here's your first small challenge.`,
+    };
+  }
+  const startSubskill = ctx.skill.subskills.find((x) => x.key === plan.startSubskill)?.key ?? ctx.skill.subskills[0]?.key ?? null;
+  const stored: StoredPlan = { goal: plan.goal, currentLevel: plan.currentLevel, timeline, targetDate, startSubskill, firstFocus: plan.firstFocus, summary: plan.summary };
+  await db.userSkill.update({ where: { userId_skillId: { userId, skillId: conv.skillId } }, data: { plan: stored, planAt: new Date() } });
+  await db.conversation.update({
+    where: { id: conv.id },
+    data: {
+      phase: "understanding",
+      context: { ...c, intake, goal: plan.goal, situation: plan.situation || intake[1]?.answer || "", barriers: plan.barriers, focusSubskill: startSubskill, questions: 0 },
+      summary: `Goal: ${plan.goal}\nNow: ${plan.currentLevel}\nTimeline: ${timeline}`,
+    },
+  });
+  await addMessage(conv.id, "coach", plan.summary, "plan");
+  await proposeChallenge(userId, conv.id, { mode: "new" });
 }
 
 // ─── Reading ──────────────────────────────────────────────────────────────
@@ -178,7 +277,7 @@ function greeting(ctx: SkillContext, firstTime: boolean): string {
  * returns that challenge's conversation (the coach waits for feedback).
  * Otherwise resumes an open session or starts a new one.
  */
-export async function startCoachSession(userId: string, skillId: string, opts: { fresh?: boolean; firstMessage?: string } = {}) {
+export async function startCoachSession(userId: string, skillId: string, opts: { fresh?: boolean; firstMessage?: string; interview?: boolean } = {}) {
   const skill = await getSkillForUser(userId, skillId);
   if (!skill) throw new CoachError("Skill not found");
   const us = await db.userSkill.findUnique({ where: { userId_skillId: { userId, skillId } } });
@@ -189,7 +288,7 @@ export async function startCoachSession(userId: string, skillId: string, opts: {
 
   if (!opts.fresh) {
     const open = await db.conversation.findFirst({
-      where: { userId, skillId, status: "open", phase: { in: ["understanding", "proposed"] } },
+      where: { userId, skillId, status: "open", phase: { in: ["intake", "understanding", "proposed"] } },
       orderBy: { updatedAt: "desc" },
     });
     if (open) {
@@ -203,13 +302,33 @@ export async function startCoachSession(userId: string, skillId: string, opts: {
 
   const ctx = await buildSkillContext(userId, skillId);
   const firstTime = (await db.conversation.count({ where: { userId, skillId } })) === 0;
+  const hasHistory = (await db.challenge.count({ where: { userId, skillId, status: { in: ["active", "done", "abandoned"] } } })) > 0;
+  // First time on this skill: the teacher starts with a short interview.
+  if (opts.interview || (!us.plan && !hasHistory)) {
+    const conv = await db.conversation.create({ data: { userId, skillId, phase: "intake", context: { intake: [] } } });
+    const t = ctx.teacher;
+    await addMessage(
+      conv.id,
+      "coach",
+      `Hi ${ctx.firstName}! I'm ${t.name}, your ${t.title.toLowerCase()}. Before we start, 3 quick questions so I know where you are and where to begin.\n\n${interviewQuestions(ctx.skill.name)[0]}`,
+    );
+    if (opts.firstMessage) await sendCoachMessage(userId, conv.id, opts.firstMessage);
+    return { conversationId: conv.id, activeChallengeId: null };
+  }
   const conv = await db.conversation.create({ data: { userId, skillId } });
   await addMessage(conv.id, "coach", greeting(ctx, firstTime));
   if (opts.firstMessage) await sendCoachMessage(userId, conv.id, opts.firstMessage);
   return { conversationId: conv.id, activeChallengeId: null };
 }
 
-type ConvContext = { situation?: string; barriers?: string[]; goal?: string; focusSubskill?: string | null; questions?: number };
+type ConvContext = {
+  situation?: string;
+  barriers?: string[];
+  goal?: string;
+  focusSubskill?: string | null;
+  questions?: number;
+  intake?: { question: string; answer: string }[];
+};
 
 /**
  * Scripted interview used only when the AI is unavailable:
@@ -237,6 +356,10 @@ export async function sendCoachMessage(userId: string, conversationId: string, t
   checkAiBudget(userId);
 
   await addMessage(conv.id, "user", message);
+  if (conv.phase === "intake") {
+    await handleInterviewAnswer(userId, conv, message);
+    return;
+  }
   const ctx = await buildSkillContext(userId, conv.skillId);
   const c = (conv.context ?? {}) as ConvContext;
 

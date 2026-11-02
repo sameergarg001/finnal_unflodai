@@ -44,6 +44,9 @@ Decisions: keep the current Next.js app (not Expo/MongoDB), follow the new onboa
 ## Log
 
 ### 2026-11-02
+- **Full workflow test ✅ 30/30.** A real browser (phone size) went through everything with the real AI: sign up → profile → rate 4 skills → Start in 1 tap → teacher interview → plan → today's task → easier / explain / take it → Tasks tab → I tried it → feedback → AI analysis (+3.2 score with reason) → next task → skip interview on another skill → abandon → plan & history → add skill by degree → custom skill + duplicate check → Reports → Ask anything → notifications → edit profile → light/dark theme → notification settings → change password → logout/login → delete account. 0 browser errors.
+- Bugs found and fixed by the test: the feedback screen crashed after "I tried it" in newer Chrome; skill page said "No tasks yet" while a task was active; AI sometimes skipped optional task fields (now accepted instead of falling back).
+- Run it again any time with `pnpm e2e` (dev server must be running).
 - **4 fixed skills** for everyone: Communication, Confidence, Discipline, Time management. Problem-solving and Adaptability moved to "+" (removed from Home for existing users unless they had worked on them).
 - **"+" now has 60 skills for every profession**, in groups: Career & jobs, Students, Engineering & tech (B.Tech/BCA/MCA), Commerce & finance (B.Com/CA), Business & management (BBA/MBA), Speaking & influence, Creative & media, Health & care (MBBS/nursing), Law & public service (LLB/UPSC), Personal growth. Search works by degree or job too (e.g. "btech", "upsc", "bcom", "nursing"). Every skill has its own teacher.
 - Cleaner Home ✅ Home now shows only: greeting + 🔔, one "Your next step" card, simple skill cards (teacher avatar, name, score, bar; a dot when a task is waiting), Add skill, and "Ask anything". Removed the daily mentor message, how-it-works guide, overall-development card (it's in Reports) and recent activity (it's in Tasks).

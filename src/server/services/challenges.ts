@@ -504,11 +504,11 @@ async function proposeChallenge(userId: string, conversationId: string, opts: { 
       objective: draft.objective,
       instructions: draft.instructions,
       steps: draft.steps,
-      expectedOutcome: draft.expectedOutcome,
+      expectedOutcome: draft.expectedOutcome || null,
       example: draft.example,
       feedbackInstructions: draft.feedbackInstructions,
       successCriteria: draft.successCriteria,
-      whyThisChallenge: draft.whyThisChallenge,
+      whyThisChallenge: draft.whyThisChallenge || null,
       difficulty, // decided by the backend, not the AI
       estimatedMinutes: draft.estimatedMinutes,
       status: "proposed",

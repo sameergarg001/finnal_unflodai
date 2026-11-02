@@ -151,14 +151,14 @@ export const challengeSchema = z.object({
   struggle: txt(3, 300),
   objective: txt(5, 300),
   instructions: txt(10, 800),
-  steps: list(txt(2, 240), 7, 2),
-  expectedOutcome: txt(5, 300),
+  steps: list(txt(2, 240), 7, 1),
+  expectedOutcome: txt(0, 300).default(""),
   subskill: txt(0, 60).nullish().transform((v) => v ?? ""),
   example: txt(0, 400).nullish().transform((v) => v || null),
-  feedbackInstructions: txt(5, 300),
+  feedbackInstructions: txt(0, 300).default("Afterwards, notice what you did, how it felt and what was hard."),
   successCriteria: list(txt(3, 160), 4, 1),
   estimatedMinutes: z.coerce.number().transform((n) => Math.round(Math.min(120, Math.max(2, n)))),
-  whyThisChallenge: txt(5, 300),
+  whyThisChallenge: txt(0, 300).default(""),
 });
 export type GeneratedChallenge = z.infer<typeof challengeSchema>;
 

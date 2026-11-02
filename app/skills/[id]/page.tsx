@@ -126,7 +126,7 @@ export default async function SkillPage({ params, searchParams }: { params: Prom
         </>
       )}
 
-      <SectionTitle action={past.length > 0 && <Link href={`/skills/${skill.id}/history`} className="text-sm font-medium text-accent">See all</Link>}>Previous activity</SectionTitle>
+      {(past.length > 0 || !active) && <SectionTitle action={past.length > 0 && <Link href={`/skills/${skill.id}/history`} className="text-sm font-medium text-accent">See all</Link>}>Previous activity</SectionTitle>}
       {past.length ? (
         <Card className="divide-y divide-line !py-1">
           {past.slice(0, 3).map((c) => (
@@ -139,7 +139,7 @@ export default async function SkillPage({ params, searchParams }: { params: Prom
             </Link>
           ))}
         </Card>
-      ) : (
+      ) : active ? null : (
         <EmptyState icon="🎯" title="No tasks yet" body={`Start improving and ${teacher.name} will design your first task around your real situation.`} />
       )}
 

@@ -15,7 +15,9 @@ export function AuthForm({
 }) {
   const [state, formAction] = useActionState(action, undefined);
   const [timezone, setTimezone] = useState("");
-  useEffect(() => setTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone), []);
+  useEffect(() => {
+    setTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone);
+  }, []);
   const signup = mode === "signup";
 
   return (

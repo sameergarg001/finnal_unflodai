@@ -61,7 +61,10 @@ export function FeedbackFlow({ challengeId, questions }: { challengeId: string; 
   const qs = status === "not_attempted" ? NOT_ATTEMPTED_QUESTIONS : questions;
   const done = status !== null && step >= qs.length;
   const endRef = useRef<HTMLDivElement>(null);
-  useEffect(() => endRef.current?.scrollIntoView({ block: "end", behavior: "smooth" }), [step, status]);
+  useEffect(() => {
+    // Note: in newer browsers scrollIntoView returns a Promise — never return it from an effect.
+    endRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
+  }, [step, status]);
 
   const next = (skip = false) => {
     const a = [...answers];

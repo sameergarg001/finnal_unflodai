@@ -8,9 +8,9 @@ import { teacherOf } from "./skills";
  */
 export type NextStep =
   | { kind: "feedback"; challengeId: string; title: string; skill: string; extraActive: number }
-  | { kind: "continue"; conversationId: string; skill: string; proposedTitle: string | null; teacher: string; emoji: string }
-  | { kind: "next"; challengeId: string; skill: string; nextFocus: string | null }
-  | { kind: "start"; skillId: string; skill: string; reason: string; teacher: string; emoji: string };
+  | { kind: "continue"; conversationId: string; skill: string; teacher: string; emoji: string }
+  | { kind: "next"; challengeId: string; skill: string }
+  | { kind: "start"; skillId: string; skill: string; teacher: string; emoji: string };
 
 const WEEK = 7 * 86_400_000;
 
@@ -23,32 +23,28 @@ export async function getNextStep(userId: string): Promise<NextStep | null> {
 
   const open = await db.conversation.findFirst({
     where: { userId, status: "open", phase: { in: ["intake", "understanding", "proposed"] }, updatedAt: { gte: new Date(Date.now() - WEEK) } },
-    include: { skill: true, challenges: { where: { status: "proposed" }, take: 1 } },
+    include: { skill: true },
     orderBy: { updatedAt: "desc" },
   });
   // Only worth resuming if the user actually said something in it.
   if (open && (await db.conversationMessage.count({ where: { conversationId: open.id, role: "user" } })) > 0) {
     const t = teacherOf(open.skill);
-    return { kind: "continue", conversationId: open.id, skill: open.skill.name, proposedTitle: open.challenges[0]?.title ?? null, teacher: t.name, emoji: t.emoji };
+    return { kind: "continue", conversationId: open.id, skill: open.skill.name, teacher: t.name, emoji: t.emoji };
   }
 
   const lastDone = await db.challenge.findFirst({
     where: { userId, status: "done" },
-    include: { skill: true, reflection: { include: { analysis: true } } },
+    include: { skill: true },
     orderBy: { completedAt: "desc" },
   });
   if (lastDone && lastDone.completedAt && Date.now() - lastDone.completedAt.getTime() < WEEK) {
     const later = await db.challenge.count({ where: { userId, skillId: lastDone.skillId, assignedAt: { gt: lastDone.assignedAt }, status: { in: ["active", "done", "proposed"] } } });
-    if (!later) return { kind: "next", challengeId: lastDone.id, skill: lastDone.skill.name, nextFocus: lastDone.reflection?.analysis?.nextFocus ?? null };
+    if (!later) return { kind: "next", challengeId: lastDone.id, skill: lastDone.skill.name };
   }
 
   const skillId = await suggestSkillId(userId);
   if (!skillId) return null;
-  const [skill, sc] = await Promise.all([
-    db.skill.findUniqueOrThrow({ where: { id: skillId } }),
-    db.skillScore.findUnique({ where: { userId_skillId: { userId, skillId } } }),
-  ]);
-  const value = sc ? (sc.evidenceCount > 0 ? sc.score : sc.selfScore) : null;
+  const skill = await db.skill.findUniqueOrThrow({ where: { id: skillId } });
   const t = teacherOf(skill);
   return {
     kind: "start",
@@ -56,6 +52,5 @@ export async function getNextStep(userId: string): Promise<NextStep | null> {
     skill: skill.name,
     teacher: t.name,
     emoji: t.emoji,
-    reason: value != null ? `It's one of your lower-rated skills (${Math.round(value)}/100) — small wins here show up fast.` : "A good place to begin.",
   };
 }

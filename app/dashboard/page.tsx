@@ -1,43 +1,27 @@
 import Link from "next/link";
-import { Suspense } from "react";
 import { after } from "next/server";
 import { requireReadyUser } from "@/server/auth/session";
-import { analyzePendingFeedback, labelStatus } from "@/server/services/challenges";
-import { getStreak } from "@/server/services/mentor";
+import { analyzePendingFeedback } from "@/server/services/challenges";
 import { getNotifications } from "@/server/services/notifications";
-import { getRecentActivity, getSkillCards, overallFrom } from "@/server/services/progress";
+import { getSkillCards } from "@/server/services/progress";
 import { getNextStep } from "@/server/services/nextStep";
-import { db } from "@/lib/db";
 import { localHour, safeTimeZone } from "@/lib/time";
 import { AppShell } from "@/components/AppShell";
-import { MentorBrief, MentorBriefSkeleton } from "@/components/MentorBrief";
-import { HowItWorks, NextStepCard } from "@/components/NextStepCard";
+import { NextStepCard } from "@/components/NextStepCard";
 import { SkillCard } from "@/components/SkillCard";
-import { Avatar, Card, EmptyState, Pill, ScoreRing, SectionTitle } from "@/components/ui";
+import { Avatar, SectionTitle } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
+/** Home: greeting, one next step, your skills. Nothing else. */
 export default async function DashboardPage() {
   const user = await requireReadyUser();
   after(() => analyzePendingFeedback(user.id));
 
-  const [cards, streak, recent, notes, next, everAccepted] = await Promise.all([
-    getSkillCards(user.id),
-    getStreak(user),
-    getRecentActivity(user.id),
-    getNotifications(user.id),
-    getNextStep(user.id),
-    db.challenge.count({ where: { userId: user.id, acceptedAt: { not: null } } }),
-  ]);
-  const isNew = everAccepted === 0;
-  const overall = overallFrom(cards);
+  const [cards, notes, next] = await Promise.all([getSkillCards(user.id), getNotifications(user.id), getNextStep(user.id)]);
   const first = (user.name ?? "").trim().split(/\s+/)[0];
   const h = localHour(safeTimeZone(user.timezone));
   const greeting = h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
-  const core = cards.filter((c) => c.category === "core");
-  const added = cards.filter((c) => c.category !== "core");
-  const lastReport = recent.lastDone?.reflection?.analysis;
-  const lastFeedback = ((lastReport?.insights ?? {}) as { feedback?: string }).feedback;
 
   return (
     <AppShell
@@ -58,108 +42,21 @@ export default async function DashboardPage() {
       }
     >
       {next && <NextStepCard step={next} />}
-      {isNew ? (
-        <HowItWorks />
-      ) : (
-        <Suspense fallback={<MentorBriefSkeleton />}>
-          <MentorBrief user={user} />
-        </Suspense>
-      )}
-
-      {/* Overall development — hidden for brand-new users until there is something to show */}
-      {!(isNew && overall.completed === 0) && (
-      <Card>
-        <div className="flex items-center gap-5">
-          <ScoreRing value={overall.evidenceAverage} caption={overall.evidenceAverage == null ? "not yet" : "overall"} />
-          <div className="min-w-0 flex-1 space-y-1.5 text-sm">
-            <p className="font-semibold">Overall development</p>
-            {overall.evidenceAverage == null ? (
-              <p className="text-muted">Complete your first task and UnfoldAI will start measuring real progress.</p>
-            ) : (
-              <p className="text-muted">
-                {overall.evidenceBaseline} → <b className="text-fg">{overall.evidenceAverage}</b> across {overall.assessedSkills} assessed skill{overall.assessedSkills === 1 ? "" : "s"}
-              </p>
-            )}
-            <p className="text-muted">Self-rating avg: <b className="text-fg">{overall.selfAverage ?? "—"}</b></p>
-          </div>
-        </div>
-        <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-          <Stat value={String(overall.completed)} label="completed" />
-          <Stat value={`🔥 ${streak.current}`} label="day streak" />
-          <Stat value={String(recent.active.length)} label="active" />
-        </div>
-      </Card>
-      )}
-
-      {/* Other waiting tasks (the first one is the next step above) */}
-      {recent.active.slice(next?.kind === "feedback" ? 1 : 0).map((ch) => (
-        <Link key={ch.id} href={`/challenge/${ch.id}`} className="flex items-center gap-3 rounded-3xl border border-accent-2/30 bg-accent-2/10 p-4 active:scale-[0.99]">
-          <span className="text-2xl">⏳</span>
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold text-accent-2">{ch.skill.name} · waiting for you</p>
-            <p className="truncate font-semibold">{ch.title}</p>
-          </div>
-          <span className="text-muted">›</span>
-        </Link>
-      ))}
 
       <SectionTitle>My skills</SectionTitle>
       <div className="grid grid-cols-2 gap-3">
-        {core.map((s) => <SkillCard key={s.id} s={s} />)}
-        {added.map((s) => <SkillCard key={s.id} s={s} />)}
-        <Link href="/skills/add" className="flex min-h-36 flex-col items-center justify-center rounded-3xl border border-dashed border-line text-muted active:scale-[0.98]">
+        {cards.map((s) => <SkillCard key={s.id} s={s} />)}
+        <Link href="/skills/add" className="flex min-h-28 flex-col items-center justify-center rounded-3xl border border-dashed border-line text-muted active:scale-[0.98]">
           <span className="text-3xl leading-none text-accent">+</span>
-          <span className="mt-2 text-sm font-medium">Add skill</span>
+          <span className="mt-1.5 text-sm font-medium">Add skill</span>
         </Link>
       </div>
 
-      <Link href="/mentor" className="flex items-center gap-3 rounded-3xl border border-line bg-card p-4 active:scale-[0.99]">
-        <span className="text-2xl" aria-hidden>💬</span>
-        <div className="min-w-0 flex-1">
-          <p className="font-semibold">Ask anything</p>
-          <p className="text-sm text-muted">A quick question about any situation? Your coach knows your skills and tasks.</p>
-        </div>
+      <Link href="/mentor" className="flex items-center gap-3 rounded-3xl border border-line bg-card px-4 py-3.5 active:scale-[0.99]">
+        <span className="text-xl" aria-hidden>💬</span>
+        <span className="flex-1 font-medium">Ask anything</span>
         <span className="text-muted">›</span>
       </Link>
-
-      <SectionTitle>Recent activity</SectionTitle>
-      {recent.lastDone || recent.active.length ? (
-        <Card className="space-y-4">
-          {recent.lastDone && (
-            <Link href={`/challenge/${recent.lastDone.id}`} className="block">
-              <p className="text-xs text-muted">Last task · {recent.lastDone.skill.name}</p>
-              <p className="mt-0.5 font-semibold">{recent.lastDone.title}</p>
-              <div className="mt-1.5 flex flex-wrap gap-1.5">
-                <Pill>{labelStatus(recent.lastDone.reflection?.completionStatus ?? "")}</Pill>
-                {recent.lastEvent && recent.lastEvent.delta > 0 && <Pill tone="success">+{recent.lastEvent.delta} progress</Pill>}
-              </div>
-            </Link>
-          )}
-          {lastFeedback && (
-            <div className="border-t border-line pt-4">
-              <p className="text-xs text-muted">Previous feedback from your coach</p>
-              <p className="mt-1 line-clamp-3 text-sm">{lastFeedback}</p>
-            </div>
-          )}
-          {recent.lastSkill && (
-            <div className="border-t border-line pt-4 text-sm">
-              <span className="text-muted">Last active skill: </span>
-              <Link href={`/skills/${recent.lastSkill.id}`} className="font-semibold text-accent">{recent.lastSkill.name}</Link>
-            </div>
-          )}
-        </Card>
-      ) : (
-        <EmptyState icon="🌱" title="No activity yet" body="Tap any skill, tell your coach what's going on, and get your first real-life challenge." />
-      )}
     </AppShell>
-  );
-}
-
-function Stat({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="rounded-2xl bg-card-2 px-2 py-2.5">
-      <p className="text-base font-bold tabular-nums">{value}</p>
-      <p className="text-[11px] text-muted">{label}</p>
-    </div>
   );
 }

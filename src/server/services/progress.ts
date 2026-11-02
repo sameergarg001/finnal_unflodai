@@ -73,21 +73,6 @@ export function overallFrom(cards: SkillCardData[]) {
   };
 }
 
-/** Recent activity for the dashboard. */
-export async function getRecentActivity(userId: string) {
-  const [lastDone, active, lastAny] = await Promise.all([
-    db.challenge.findFirst({
-      where: { userId, status: "done" },
-      include: { skill: true, reflection: { include: { analysis: true } } },
-      orderBy: { completedAt: "desc" },
-    }),
-    db.challenge.findMany({ where: { userId, status: "active" }, include: { skill: true }, orderBy: { acceptedAt: "desc" } }),
-    db.conversation.findFirst({ where: { userId }, include: { skill: true }, orderBy: { updatedAt: "desc" } }),
-  ]);
-  const lastEvent = lastDone ? await db.skillScoreEvent.findFirst({ where: { userId, source: "challenge", sourceId: lastDone.id } }) : null;
-  return { lastDone, active, lastEvent, lastSkill: lastAny?.skill ?? null };
-}
-
 /** Data behind the Reports tab. */
 export async function getReports(user: { id: string; timezone: string }) {
   const userId = user.id;

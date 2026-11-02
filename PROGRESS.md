@@ -44,6 +44,7 @@ Decisions: keep the current Next.js app (not Expo/MongoDB), follow the new onboa
 ## Log
 
 ### 2026-11-02
+- Cleaner Home ✅ Home now shows only: greeting + 🔔, one "Your next step" card, simple skill cards (teacher avatar, name, score, bar; a dot when a task is waiting), Add skill, and "Ask anything". Removed the daily mentor message, how-it-works guide, overall-development card (it's in Reports) and recent activity (it's in Tasks).
 - New **Tasks** tab ✅ All ongoing work in one place: waiting tasks (with "✓ I tried it"), tasks to decide, conversations in progress, tasks being analysed, and recently finished. The tab shows a badge with the number of waiting tasks.
 - Removed the **Coach** tab. Teachers now show on each skill card on Home ("with Aanya"), coach conversations open from Tasks or the skill page, and "Ask anything" is a card on Home. Tabs are now: Home · Tasks · Reports · Profile.
 - Renamed "challenge" → **"task" / "Today's task"** everywhere users see it (screens, coach messages, notifications, public pages). The AI coach is also told to say "task", never "challenge".

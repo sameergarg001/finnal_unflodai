@@ -27,6 +27,7 @@ export default async function CoachPage({ params }: { params: Promise<{ id: stri
     <CoachChat
       conversationId={conv.id}
       phase={conv.phase}
+      activeChallengeId={conv.challenges.find((c) => c.status === "active")?.id ?? null}
       placeholder={PLACEHOLDER[conv.phase] ?? "Message your coach…"}
       challenges={challenges}
       messages={conv.messages.map((m) => ({ id: m.id, role: m.role, kind: m.kind, content: m.content, challengeId: m.challengeId }))}

@@ -12,6 +12,14 @@ interface SkillItem {
   initial: number | null;
 }
 
+const PRESETS = [
+  { label: "Beginner", value: 20 },
+  { label: "Developing", value: 40 },
+  { label: "Capable", value: 60 },
+  { label: "Strong", value: 80 },
+  { label: "Expert", value: 95 },
+];
+
 const band = (v: number) => (v < 25 ? "Just starting" : v < 45 ? "Developing" : v < 65 ? "Capable" : v < 85 ? "Strong" : "Excellent");
 
 /** Self-assessment: one slider card per core skill (0–100). */
@@ -29,7 +37,7 @@ export function AssessmentForm({ skills, action, from }: { skills: SkillItem[]; 
       onSubmit={(e) => {
         if (remaining > 0) {
           e.preventDefault();
-          setHint(`Move the slider for ${skills.filter((s) => !touched.has(s.id)).map((s) => s.name).join(", ")} (even if 50 feels right).`);
+          setHint(`Tap a level for ${skills.filter((s) => !touched.has(s.id)).map((s) => s.name).join(", ")}.`);
         }
       }}
     >
@@ -49,6 +57,25 @@ export function AssessmentForm({ skills, action, from }: { skills: SkillItem[]; 
               </div>
             </div>
             <p className="mt-1 text-sm text-muted">{s.description}</p>
+            <div className="mt-4 grid grid-cols-5 gap-1.5">
+              {PRESETS.map((p) => {
+                const on = touched.has(s.id) && band(v) === band(p.value);
+                return (
+                  <button
+                    key={p.label}
+                    type="button"
+                    onClick={() => {
+                      setValues({ ...values, [s.id]: p.value });
+                      setTouched(new Set(touched).add(s.id));
+                      setHint("");
+                    }}
+                    className={`min-h-11 rounded-xl px-0.5 text-[10px] font-semibold leading-tight tracking-tight transition active:scale-95 ${on ? "bg-accent text-white" : "bg-card-2 text-muted"}`}
+                  >
+                    {p.label}
+                  </button>
+                );
+              })}
+            </div>
             <input
               type="range"
               min={0}
@@ -57,14 +84,15 @@ export function AssessmentForm({ skills, action, from }: { skills: SkillItem[]; 
               name={`score:${s.id}`}
               value={v}
               aria-label={`${s.name} self-rating`}
-              className="slider mt-5 w-full"
+              className="slider mt-4 w-full"
               style={{ ["--pct" as string]: `${v}%` }}
               onChange={(e) => {
                 setValues({ ...values, [s.id]: Number(e.target.value) });
                 setTouched(new Set(touched).add(s.id));
+                setHint("");
               }}
             />
-            <div className="mt-1 flex justify-between text-[11px] text-muted"><span>0</span><span>100</span></div>
+            <div className="mt-1 flex justify-between text-[11px] text-muted"><span>0</span><span>fine-tune with the slider</span><span>100</span></div>
           </div>
         );
       })}

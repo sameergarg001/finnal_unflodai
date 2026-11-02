@@ -93,18 +93,26 @@ function ChallengeMessage({ c, current, onTell }: { c: ChallengeView; current: b
   );
 }
 
+const QUICK: Record<string, string[]> = {
+  understanding: ["Just give me a challenge"],
+  active: ["I'm stuck — how do I start?", "What should I say first?"],
+  reviewed: ["Give me my next challenge", "I want to work on something else"],
+};
+
 export function CoachChat({
   conversationId,
   messages,
   challenges,
   phase,
   placeholder,
+  activeChallengeId,
 }: {
   conversationId: string;
   messages: Msg[];
   challenges: Record<string, ChallengeView>;
   phase: string;
   placeholder: string;
+  activeChallengeId?: string | null;
 }) {
   const [state, action] = useActionState(coachMessageAction, undefined);
   const formRef = useRef<HTMLFormElement>(null);
@@ -146,6 +154,29 @@ export function CoachChat({
         <div className="space-y-3 pb-2"><PendingMessage /></div>
         <input type="hidden" name="conversationId" value={conversationId} />
         {state?.error && <Notice tone="error">{state.error}</Notice>}
+        {(QUICK[phase] || (phase === "active" && activeChallengeId)) && (
+          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
+            {phase === "active" && activeChallengeId && (
+              <Link href={`/challenge/${activeChallengeId}?feedback=1`} className="shrink-0 rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white">
+                ✓ I tried it — report back
+              </Link>
+            )}
+            {(QUICK[phase] ?? []).map((q) => (
+              <button
+                key={q}
+                type="button"
+                onClick={() => {
+                  if (!boxRef.current) return;
+                  boxRef.current.value = q;
+                  formRef.current?.requestSubmit();
+                }}
+                className="shrink-0 rounded-full border border-line bg-card px-4 py-2 text-sm font-medium active:scale-95"
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="flex items-end gap-2 rounded-3xl border border-line bg-card p-1.5">
           <textarea
             ref={boxRef}

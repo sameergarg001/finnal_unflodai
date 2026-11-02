@@ -22,7 +22,7 @@ export default async function AssessmentPage({ searchParams }: { searchParams: P
         <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-accent">{from === "profile" ? "Update self-assessment" : "Step 2 of 2"}</p>
         <h1 className="mt-1 text-2xl font-bold">Rate your core skills</h1>
         <p className="mx-auto mt-2 max-w-sm text-sm text-muted">
-          How strong do you feel in each skill today, from 0 to 100? This is your own <b className="text-fg">self-assessment</b> — not a test or a
+          Tap the level that feels true today (you can fine-tune 0–100). This is your own <b className="text-fg">self-assessment</b> — not a test or a
           scientific measure. UnfoldAI tracks real progress separately, from the challenges you complete.
         </p>
       </div>

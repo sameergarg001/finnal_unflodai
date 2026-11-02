@@ -6,9 +6,12 @@ import { analyzePendingFeedback, labelStatus } from "@/server/services/challenge
 import { getStreak } from "@/server/services/mentor";
 import { getNotifications } from "@/server/services/notifications";
 import { getRecentActivity, getSkillCards, overallFrom } from "@/server/services/progress";
+import { getNextStep } from "@/server/services/nextStep";
+import { db } from "@/lib/db";
 import { localHour, safeTimeZone } from "@/lib/time";
 import { AppShell } from "@/components/AppShell";
 import { MentorBrief, MentorBriefSkeleton } from "@/components/MentorBrief";
+import { HowItWorks, NextStepCard } from "@/components/NextStepCard";
 import { SkillCard } from "@/components/SkillCard";
 import { Avatar, Card, EmptyState, Pill, ScoreRing, SectionTitle } from "@/components/ui";
 
@@ -18,12 +21,15 @@ export default async function DashboardPage() {
   const user = await requireReadyUser();
   after(() => analyzePendingFeedback(user.id));
 
-  const [cards, streak, recent, notes] = await Promise.all([
+  const [cards, streak, recent, notes, next, everAccepted] = await Promise.all([
     getSkillCards(user.id),
     getStreak(user),
     getRecentActivity(user.id),
     getNotifications(user.id),
+    getNextStep(user.id),
+    db.challenge.count({ where: { userId: user.id, acceptedAt: { not: null } } }),
   ]);
+  const isNew = everAccepted === 0;
   const overall = overallFrom(cards);
   const first = (user.name ?? "").trim().split(/\s+/)[0];
   const h = localHour(safeTimeZone(user.timezone));
@@ -51,11 +57,17 @@ export default async function DashboardPage() {
         </div>
       }
     >
-      <Suspense fallback={<MentorBriefSkeleton />}>
-        <MentorBrief user={user} />
-      </Suspense>
+      {next && <NextStepCard step={next} />}
+      {isNew ? (
+        <HowItWorks />
+      ) : (
+        <Suspense fallback={<MentorBriefSkeleton />}>
+          <MentorBrief user={user} />
+        </Suspense>
+      )}
 
-      {/* Overall development */}
+      {/* Overall development — hidden for brand-new users until there is something to show */}
+      {!(isNew && overall.completed === 0) && (
       <Card>
         <div className="flex items-center gap-5">
           <ScoreRing value={overall.evidenceAverage} caption={overall.evidenceAverage == null ? "not yet" : "overall"} />
@@ -77,9 +89,10 @@ export default async function DashboardPage() {
           <Stat value={String(recent.active.length)} label="active" />
         </div>
       </Card>
+      )}
 
-      {/* Waiting challenges */}
-      {recent.active.map((ch) => (
+      {/* Other waiting challenges (the first one is the next step above) */}
+      {recent.active.slice(next?.kind === "feedback" ? 1 : 0).map((ch) => (
         <Link key={ch.id} href={`/challenge/${ch.id}`} className="flex items-center gap-3 rounded-3xl border border-accent-2/30 bg-accent-2/10 p-4 active:scale-[0.99]">
           <span className="text-2xl">⏳</span>
           <div className="min-w-0 flex-1">

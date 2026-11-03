@@ -25,7 +25,7 @@ export async function AppShell({
   const taskCount = user ? await db.challenge.count({ where: { userId: user.id, status: "active" } }) : 0;
   return (
     <div className="mx-auto min-h-dvh max-w-md md:max-w-xl">
-      <header className="sticky top-0 z-10 bg-gradient-to-b from-bg via-bg/90 to-bg/0 pt-[env(safe-area-inset-top)]">
+      <header className="sticky top-0 z-10 bg-bg/75 pt-[env(safe-area-inset-top)] backdrop-blur-xl backdrop-saturate-150">
         {header ?? (
           <div className="flex h-16 items-center gap-3 px-4">
             {back && (

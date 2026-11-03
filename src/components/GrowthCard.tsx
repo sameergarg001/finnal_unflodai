@@ -24,17 +24,18 @@ export function GrowthCard({ cards }: { cards: SkillCardData[] }) {
       </div>
 
       {shown.length > 1 && (
-        <div className="mt-5 flex items-end gap-2" role="img" aria-label={shown.map((c) => `${c.name} ${Math.round(c.evidenceScore ?? c.selfScore ?? 0)}`).join(", ")}>
+        <div className="mt-5 flex items-end gap-2" role="img" aria-label={shown.map((c) => `${c.name} ${c.evidenceScore ?? c.selfScore ?? "not rated"}`).join(", ")}>
           {shown.map((c, i) => {
-            const v = c.evidenceScore ?? c.selfScore ?? 0;
+            const raw = c.evidenceScore ?? c.selfScore;
+            const v = raw ?? 0;
             return (
               <div key={c.id} className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
-                <span className="text-[11px] font-semibold tabular-nums text-muted">{Math.round(v)}</span>
+                <span className="text-[11px] font-semibold tabular-nums text-muted">{raw == null ? "—" : Math.round(v)}</span>
                 <div className="flex h-20 w-full max-w-7 items-end overflow-hidden rounded-[10px] bg-card-2/70">
-                  <div
+                  {raw != null && <div
                     className="bar-grow w-full rounded-[10px]"
                     style={{ height: `${Math.max(6, v)}%`, background: c.evidenceScore != null ? SERIES.evidence : SERIES.self, animationDelay: `${i * 50}ms` }}
-                  />
+                  />}
                 </div>
                 <span className="w-full truncate text-center text-[15px]" title={c.name}>
                   {c.teacher.emoji}

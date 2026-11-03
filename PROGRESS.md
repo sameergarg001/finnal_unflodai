@@ -43,6 +43,12 @@ Decisions: keep the current Next.js app (not Expo/MongoDB), follow the new onboa
 
 ## Log
 
+### 2026-11-03
+- **New look ✅** Redesigned every screen based on the 3 reference images. Light sage "mist" theme is now the default (dark "forest" theme still in Profile → Theme). Frosted-glass cards, pine-green buttons, sun-yellow for progress. New fonts (Bricolage Grotesque + Figtree) and a new logo mark.
+- Home: "Your growth" ring (overall score) + one bar per skill, a single next-step card, pill-shaped skill rows with score/100, Ask anything bar. Floating tab dock.
+- Skill page: big score ring (UnfoldAI vs you), plan as 4 tiles, subskills as a step-by-step path. Task card: time + difficulty dots, numbered steps, "Try saying" bubble. Analysis: score ring + went well / to improve with icons.
+- Much less text everywhere (shorter labels, no long explanations). Full workflow test still passes 30/30, 0 browser errors.
+
 ### 2026-11-02
 - **Full workflow test ✅ 30/30.** A real browser (phone size) went through everything with the real AI: sign up → profile → rate 4 skills → Start in 1 tap → teacher interview → plan → today's task → easier / explain / take it → Tasks tab → I tried it → feedback → AI analysis (+3.2 score with reason) → next task → skip interview on another skill → abandon → plan & history → add skill by degree → custom skill + duplicate check → Reports → Ask anything → notifications → edit profile → light/dark theme → notification settings → change password → logout/login → delete account. 0 browser errors.
 - Bugs found and fixed by the test: the feedback screen crashed after "I tried it" in newer Chrome; skill page said "No tasks yet" while a task was active; AI sometimes skipped optional task fields (now accepted instead of falling back).

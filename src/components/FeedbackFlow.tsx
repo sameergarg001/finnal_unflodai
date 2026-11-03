@@ -44,7 +44,7 @@ function MicButton({ onText }: { onText: (t: string) => void }) {
         setListening(true);
         r.start();
       }}
-      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${listening ? "animate-pulse bg-danger text-white" : "border border-line bg-card-2"}`}
+      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${listening ? "animate-pulse bg-danger text-white" : "bg-card-2"}`}
     >
       <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0014 0M12 18v3" /></svg>
     </button>
@@ -82,11 +82,11 @@ export function FeedbackFlow({ challengeId, questions }: { challengeId: string; 
       {status === null ? (
         <div className="grid gap-2">
           {STATUSES.map((s) => (
-            <button key={s.value} type="button" onClick={() => setStatus(s.value)} className="flex min-h-12 items-center gap-3 rounded-2xl border border-line bg-card px-4 py-3 text-left font-medium active:scale-[0.98]">
-              <span className="text-xl">{s.icon}</span>{s.label}
+            <button key={s.value} type="button" onClick={() => setStatus(s.value)} className="glass flex min-h-14 items-center gap-3 rounded-full py-2 pl-2 pr-4 text-left font-semibold active:scale-[0.98]">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-card-2/80 text-xl">{s.icon}</span>{s.label}
             </button>
           ))}
-          <p className="px-1 text-xs text-muted">Every honest answer helps — an unsuccessful attempt is useful information, never a failure.</p>
+          <p className="px-1 pt-1 text-center text-xs text-muted">Every honest answer helps.</p>
         </div>
       ) : (
         <>
@@ -137,8 +137,8 @@ export function FeedbackFlow({ challengeId, questions }: { challengeId: string; 
 }
 
 function Coach({ children }: { children: React.ReactNode }) {
-  return <div className="flex"><div className="max-w-[85%] rounded-3xl rounded-bl-lg border border-line bg-card px-4 py-2.5 text-[15px]">{children}</div></div>;
+  return <div className="flex"><div className="max-w-[85%] rounded-[22px] rounded-bl-md bg-card-2/70 px-4 py-3 text-[15px]">{children}</div></div>;
 }
 function Me({ children }: { children: React.ReactNode }) {
-  return <div className="flex justify-end"><div className="max-w-[85%] whitespace-pre-line rounded-3xl rounded-br-lg bg-accent px-4 py-2.5 text-[15px] text-white">{children}</div></div>;
+  return <div className="flex justify-end"><div className="max-w-[85%] whitespace-pre-line rounded-[22px] rounded-br-md bg-accent px-4 py-3 text-[15px] text-on-accent">{children}</div></div>;
 }

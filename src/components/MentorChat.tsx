@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useRef } from "react";
 import { useFormStatus } from "react-dom";
 import { askMentorAction } from "../../app/actions";
-import { input } from "./ui";
+import { Icon, input } from "./ui";
 
 export interface ChatMessage {
   id: string;
@@ -17,7 +17,7 @@ function Pending() {
   return (
     <>
       <Bubble role="user" content={String(data?.get("question") ?? "")} />
-      <p className="animate-pulse text-sm text-muted">Your coach is thinking…</p>
+      <div className="flex"><div className="glass flex items-center gap-1.5 rounded-[22px] rounded-bl-md px-4 py-4" aria-label="Coach is thinking">{[0, 1, 2].map((i) => <span key={i} className="h-2 w-2 animate-bounce rounded-full bg-muted" style={{ animationDelay: `${i * 0.15}s` }} />)}</div></div>
     </>
   );
 }
@@ -29,11 +29,9 @@ function SendButton() {
       type="submit"
       disabled={pending}
       aria-label="Send"
-      className="flex h-12 w-12 shrink-0 items-center justify-center self-end rounded-full bg-accent text-white active:scale-95 disabled:opacity-50"
+      className="flex h-11 w-11 shrink-0 items-center justify-center self-end rounded-full bg-accent text-on-accent active:scale-95 disabled:opacity-50"
     >
-      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M5 12h14M13 6l6 6-6 6" />
-      </svg>
+      <Icon name="send" />
     </button>
   );
 }
@@ -43,8 +41,8 @@ function Bubble({ role, content }: { role: string; content: string }) {
   return (
     <div className={`flex ${mine ? "justify-end" : "justify-start"}`}>
       <div
-        className={`max-w-[85%] whitespace-pre-line rounded-3xl px-4 py-2.5 text-[15px] leading-relaxed ${
-          mine ? "rounded-br-lg bg-accent text-white" : "rounded-bl-lg border border-line bg-card"
+        className={`max-w-[84%] whitespace-pre-line px-4 py-3 text-[15px] leading-relaxed ${
+          mine ? "rounded-[22px] rounded-br-md bg-accent text-on-accent" : "glass rounded-[22px] rounded-bl-md"
         }`}
       >
         {content}
@@ -87,8 +85,8 @@ export function MentorChat({
       <form ref={formRef} action={action} className="space-y-2">
         <Pending />
         {challengeId && <input type="hidden" name="challengeId" value={challengeId} />}
-        <div className="flex gap-2">
-          <textarea name="question" rows={1} required maxLength={1000} placeholder={placeholder} defaultValue={draft} autoFocus={Boolean(draft)} className={`${input} !mt-0 min-h-12 resize-none`} />
+        <div className="glass flex items-end gap-2 rounded-[26px] py-1.5 pl-2 pr-1.5">
+          <textarea name="question" rows={1} required maxLength={1000} placeholder={placeholder} defaultValue={draft} autoFocus={Boolean(draft)} className={`${input} !mt-0 min-h-11 flex-1 resize-none !border-0 !bg-transparent !py-2.5 focus:!ring-0`} />
           <SendButton />
         </div>
         {state?.error && <p className="rounded-2xl bg-danger/10 px-4 py-3 text-sm text-danger">{state.error}</p>}

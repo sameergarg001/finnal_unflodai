@@ -16,10 +16,10 @@ export default async function AskAnythingPage({ searchParams }: { searchParams: 
   return (
     <AppShell title="Ask anything" back="/dashboard">
       {messages.length === 0 && (
-        <div className="px-2 pb-2 pt-8 text-center">
-          <div className="flex justify-center"><Logo size={56} /></div>
-          <p className="mt-4 text-lg font-semibold">Ask your coach anything</p>
-          <p className="mx-auto mt-1 max-w-xs text-sm text-muted">I know your skills, your tasks and what you find hard. For today&apos;s task, open a skill on Home.</p>
+        <div className="px-2 pb-4 pt-10 text-center">
+          <div className="flex justify-center"><Logo size={64} /></div>
+          <p className="mt-4 font-display text-2xl font-bold">What&apos;s on your mind?</p>
+          <p className="mx-auto mt-1 max-w-[16rem] text-sm text-muted">I know your skills and your tasks.</p>
         </div>
       )}
       <MentorChat messages={messages} placeholder="Ask your coach anything…" draft={draft} />

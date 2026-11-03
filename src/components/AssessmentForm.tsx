@@ -3,7 +3,7 @@
 import { useActionState, useState } from "react";
 import type { FormState } from "../../app/actions";
 import { SubmitButton } from "./SubmitButton";
-import { Notice } from "./ui";
+import { Notice, ScoreRing } from "./ui";
 
 interface SkillItem {
   id: string;
@@ -45,18 +45,17 @@ export function AssessmentForm({ skills, action, from }: { skills: SkillItem[]; 
       {skills.map((s, i) => {
         const v = values[s.id];
         return (
-          <div key={s.id} className="rounded-3xl border border-line bg-card p-5">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold text-muted">{i + 1} / {skills.length}</p>
-                <h3 className="text-lg font-bold">{s.name}</h3>
+          <div key={s.id} data-skill-card className="glass rounded-[28px] p-5">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-muted">{i + 1} of {skills.length}</p>
+                <h3 className="text-xl font-bold">{s.name}</h3>
+                <p className={`text-sm ${touched.has(s.id) ? "text-accent" : "text-muted"}`}>{touched.has(s.id) ? band(v) : "Tap a level"}</p>
               </div>
-              <div className="text-right">
-                <p className={`text-3xl font-bold tabular-nums ${touched.has(s.id) ? "" : "text-muted"}`}>{v}</p>
-                <p className="text-[11px] text-muted">{band(v)}</p>
+              <div className={touched.has(s.id) ? "" : "opacity-40"}>
+                <ScoreRing value={v} size={68} stroke={7} />
               </div>
             </div>
-            <p className="mt-1 text-sm text-muted">{s.description}</p>
             <div className="mt-4 grid grid-cols-5 gap-1.5">
               {PRESETS.map((p) => {
                 const on = touched.has(s.id) && band(v) === band(p.value);
@@ -69,7 +68,7 @@ export function AssessmentForm({ skills, action, from }: { skills: SkillItem[]; 
                       setTouched(new Set(touched).add(s.id));
                       setHint("");
                     }}
-                    className={`min-h-11 rounded-xl px-0.5 text-[10px] font-semibold leading-tight tracking-tight transition active:scale-95 ${on ? "bg-accent text-white" : "bg-card-2 text-muted"}`}
+                    className={`min-h-11 rounded-full px-0.5 text-[10.5px] font-semibold leading-tight tracking-tight transition active:scale-95 ${on ? "bg-accent text-on-accent" : "bg-card-2 text-muted"}`}
                   >
                     {p.label}
                   </button>
@@ -92,7 +91,7 @@ export function AssessmentForm({ skills, action, from }: { skills: SkillItem[]; 
                 setHint("");
               }}
             />
-            <div className="mt-1 flex justify-between text-[11px] text-muted"><span>0</span><span>fine-tune with the slider</span><span>100</span></div>
+            <div className="mt-1 flex justify-between text-[11px] text-muted"><span>0</span><span>100</span></div>
           </div>
         );
       })}

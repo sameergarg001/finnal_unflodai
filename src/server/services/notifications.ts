@@ -9,14 +9,14 @@ export interface Preferences {
 }
 
 export const DEFAULT_PREFERENCES: Preferences = {
-  theme: "dark",
+  theme: "light",
   notifications: { activeChallenge: true, feedback: true, reports: true, inactiveSkill: true },
 };
 
 export function preferencesOf(raw: unknown): Preferences {
   const p = (raw ?? {}) as Partial<Preferences>;
   return {
-    theme: p.theme === "light" ? "light" : "dark",
+    theme: p.theme === "dark" ? "dark" : "light",
     notifications: { ...DEFAULT_PREFERENCES.notifications, ...(p.notifications ?? {}) },
   };
 }

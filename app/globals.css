@@ -1,67 +1,151 @@
 @import "tailwindcss";
 
-/* Design tokens. Dark is the default; light is opt-in under Profile → Theme. */
-:root {
-  --bg: #0b1020;
-  --surface: #121a2b;
-  --card: #182338;
-  --card-2: #1e2a42;
-  --fg: #f8fafc;
-  --muted: #94a3b8;
-  --line: rgba(148, 163, 184, 0.14);
-  color-scheme: dark;
-}
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/*
+ * UnfoldAI design tokens.
+ * Light "mist" (default): sage-tinted air, frosted cards, pine for action, sun for progress.
+ * Dark "forest": the same family at night.
+ */
+:root,
 [data-theme="light"] {
-  --bg: #f4f6fb;
-  --surface: #ffffff;
-  --card: #ffffff;
-  --card-2: #eef1f8;
-  --fg: #0f172a;
-  --muted: #64748b;
-  --line: rgba(15, 23, 42, 0.09);
+  --bg: #e4ece7;
+  --bg-glow-1: #f4f8f5;
+  --bg-glow-2: #cfe0d6;
+  --surface: rgba(255, 255, 255, 0.62);
+  --card: rgba(255, 255, 255, 0.7);
+  --card-solid: #f7faf8;
+  --card-2: #dbe6df;
+  --fg: #10201a;
+  --muted: #5b6d65;
+  --line: rgba(16, 32, 26, 0.08);
+  --accent: #2c6a54;
+  --accent-strong: #1d5240;
+  --accent-soft: #cfe5da;
+  --on-accent: #ffffff;
+  --sun: #f2c14e;
+  --sun-ink: #8a5a00;
+  --sun-soft: #fbedc5;
+  --series-evidence: #2c6a54;
+  --series-self: #d99a1e;
+  --shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset, 0 10px 30px -18px rgba(22, 60, 45, 0.35);
   color-scheme: light;
+}
+[data-theme="dark"] {
+  --bg: #0d1613;
+  --bg-glow-1: #15241e;
+  --bg-glow-2: #0f1d18;
+  --surface: rgba(23, 36, 31, 0.72);
+  --card: rgba(28, 43, 37, 0.78);
+  --card-solid: #18261f;
+  --card-2: #23362e;
+  --fg: #e9f2ed;
+  --muted: #8ea39a;
+  --line: rgba(233, 242, 237, 0.08);
+  --accent: #74c7a3;
+  --accent-strong: #56b08a;
+  --accent-soft: rgba(116, 199, 163, 0.16);
+  --on-accent: #0b1a14;
+  --sun: #f2c94c;
+  --sun-ink: #f2c94c;
+  --sun-soft: rgba(242, 201, 76, 0.14);
+  --series-evidence: #74c7a3;
+  --series-self: #f2c94c;
+  --shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 12px 30px -18px rgba(0, 0, 0, 0.7);
+  color-scheme: dark;
 }
 
 @theme inline {
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-sans: var(--font-body), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-head), var(--font-body), ui-sans-serif, system-ui, sans-serif;
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-card: var(--card);
+  --color-card-solid: var(--card-solid);
   --color-card-2: var(--card-2);
   --color-fg: var(--fg);
   --color-muted: var(--muted);
   --color-line: var(--line);
-  --color-accent: #8b5cf6;
-  --color-accent-strong: #7c3aed;
-  --color-accent-2: #38bdf8;
-  --color-success: #22c55e;
-  --color-warn: #f59e0b;
-  --color-danger: #f43f5e;
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-soft: var(--accent-soft);
+  --color-on-accent: var(--on-accent);
+  --color-accent-2: var(--sun-ink);
+  --color-sun: var(--sun);
+  --color-sun-ink: var(--sun-ink);
+  --color-sun-soft: var(--sun-soft);
+  --color-success: #2f9e62;
+  --color-warn: #d98a1e;
+  --color-danger: #e0484f;
+  --shadow-soft: var(--shadow);
 }
 
-body {
-  @apply bg-bg text-fg antialiased;
-}
-
-/* App feel: no tap flash, no text-size jumps, no pull-to-refresh bounce */
 html {
+  background: var(--bg);
   -webkit-tap-highlight-color: transparent;
   -webkit-text-size-adjust: 100%;
   overscroll-behavior-y: none;
 }
+body {
+  @apply text-fg antialiased;
+  background:
+    radial-gradient(120% 60% at 15% -10%, var(--bg-glow-1) 0%, transparent 60%),
+    radial-gradient(90% 50% at 110% 30%, var(--bg-glow-2) 0%, transparent 65%),
+    var(--bg);
+  background-attachment: fixed;
+}
 
-/* Subtle screen-enter transition */
+h1, h2, h3, .font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.015em;
+}
+
+/* Frosted card used everywhere (the reference "glass" look, kept subtle). */
+.glass {
+  background: var(--card);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
+  box-shadow: var(--shadow);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* One screen-enter moment. */
 @keyframes enter {
-  from { opacity: 0; transform: translateY(6px); }
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: none; }
 }
-.animate-enter { animation: enter 0.28s ease-out both; }
+.animate-enter { animation: enter 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+/* Score rings / bars fill in once when they appear. */
+@keyframes ring-fill {
+  from { stroke-dashoffset: var(--c); }
+}
+.ring-fill { animation: ring-fill 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes bar-grow {
+  from { transform: scaleY(0); }
+}
+.bar-grow { transform-origin: bottom; animation: bar-grow 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 
 @keyframes wait-pulse {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.55; }
+  50% { opacity: 0.5; }
 }
 .wait-pulse { animation: wait-pulse 1.6s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
 
 /* Range slider */
 input[type="range"].slider {
@@ -69,7 +153,7 @@ input[type="range"].slider {
   appearance: none;
   height: 8px;
   border-radius: 999px;
-  background: linear-gradient(90deg, #8b5cf6 var(--pct, 50%), var(--card-2) var(--pct, 50%));
+  background: linear-gradient(90deg, var(--accent) var(--pct, 50%), var(--card-2) var(--pct, 50%));
   outline: none;
 }
 input[type="range"].slider::-webkit-slider-thumb {
@@ -78,13 +162,13 @@ input[type="range"].slider::-webkit-slider-thumb {
   height: 28px;
   border-radius: 999px;
   background: #fff;
-  border: 4px solid #8b5cf6;
-  box-shadow: 0 2px 10px rgba(139, 92, 246, 0.5);
+  border: 4px solid var(--accent);
+  box-shadow: 0 4px 12px rgba(16, 32, 26, 0.25);
 }
 input[type="range"].slider::-moz-range-thumb {
   width: 22px;
   height: 22px;
   border-radius: 999px;
   background: #fff;
-  border: 4px solid #8b5cf6;
+  border: 4px solid var(--accent);
 }

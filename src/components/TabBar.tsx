@@ -10,25 +10,33 @@ const TABS = [
   { href: "/profile", label: "Profile", match: ["/profile"], icon: "M12 12a4 4 0 100-8 4 4 0 000 8zm-7.5 8.5a7.5 7.5 0 0115 0" },
 ];
 
+/** Floating dock: the active tab grows into a labelled pill. */
 export function TabBar({ taskCount = 0 }: { taskCount?: number }) {
   const path = usePathname();
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl">
-      <ul className="mx-auto flex max-w-md">
+    <nav className="pointer-events-none fixed inset-x-0 bottom-0 z-20 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))]" aria-label="Main">
+      <ul className="glass pointer-events-auto mx-auto flex max-w-sm items-center justify-between gap-1 rounded-full p-1.5">
         {TABS.map((t) => {
           const active = t.match.some((m) => path === m || path.startsWith(m + "/"));
           return (
-            <li key={t.href} className="flex-1">
-              <Link href={t.href} className={`relative flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition ${active ? "text-accent" : "text-muted"}`}>
+            <li key={t.href} className={active ? "flex-[1.6]" : "flex-1"}>
+              <Link
+                href={t.href}
+                aria-current={active ? "page" : undefined}
+                aria-label={t.label}
+                className={`relative flex h-12 items-center justify-center gap-2 rounded-full text-sm font-semibold transition-all duration-300 ${
+                  active ? "bg-accent text-on-accent shadow-[0_8px_20px_-10px_var(--accent)]" : "text-muted hover:text-fg"
+                }`}
+              >
+                <svg viewBox="0 0 24 24" className="h-[22px] w-[22px] shrink-0" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.9} strokeLinecap="round" strokeLinejoin="round">
+                  <path d={t.icon} />
+                </svg>
+                {active && <span>{t.label}</span>}
                 {t.href === "/tasks" && taskCount > 0 && (
-                  <span className="absolute left-1/2 top-1 ml-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent-2 px-1 text-[10px] font-bold text-bg" aria-label={`${taskCount} waiting`}>
+                  <span className={`${active ? "static ring-0" : "absolute right-[18%] top-1.5 ring-2"} flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-sun px-1 text-[10px] font-bold text-[#3a2a00] ring-card-solid`} aria-label={`${taskCount} waiting`}>
                     {taskCount}
                   </span>
                 )}
-                <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
-                  <path d={t.icon} />
-                </svg>
-                {t.label}
               </Link>
             </li>
           );

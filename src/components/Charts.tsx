@@ -20,10 +20,10 @@ export function TrendChart({ points }: { points: { date: string; value: number }
           <text x={P.l - 6} y={y(t) + 3} textAnchor="end" fontSize={9} fill="var(--muted)">{t}</text>
         </g>
       ))}
-      <polyline points={points.map((p, i) => `${x(i)},${y(p.value)}`).join(" ")} fill="none" stroke={SERIES.evidence} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+      <polyline points={points.map((p, i) => `${x(i)},${y(p.value)}`).join(" ")} fill="none" stroke={SERIES.evidence} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
       {points.map((p, i) => (
         <g key={i}>
-          <circle cx={x(i)} cy={y(p.value)} r={4} fill={SERIES.evidence} stroke="var(--card)" strokeWidth={2} />
+          <circle cx={x(i)} cy={y(p.value)} r={4} fill={SERIES.evidence} stroke="var(--card-solid)" strokeWidth={2} />
           <circle cx={x(i)} cy={y(p.value)} r={12} fill="transparent"><title>{`${p.date}: ${p.value}`}</title></circle>
         </g>
       ))}
@@ -48,7 +48,7 @@ export function WeeklyBars({ weeks }: { weeks: { week: string; count: number }[]
         const x = P.l + i * slot + 6;
         return (
           <g key={w.week}>
-            {w.count > 0 && <path d={roundedTop(x, base - h, bw, h, 4)} fill={SERIES.evidence}><title>{`Week of ${w.week}: ${w.count}`}</title></path>}
+            {w.count > 0 && <path d={roundedTop(x, base - h, bw, h, 8)} fill={SERIES.evidence}><title>{`Week of ${w.week}: ${w.count}`}</title></path>}
             {w.count > 0 && <text x={x + bw / 2} y={base - h - 4} fontSize={9} textAnchor="middle" fill="var(--muted)">{w.count}</text>}
             <text x={x + bw / 2} y={H - 6} fontSize={8} textAnchor="middle" fill="var(--muted)">{w.week.slice(5)}</text>
           </g>
@@ -88,7 +88,7 @@ export function SelfVsEvidence({ rows }: { rows: { name: string; self: number | 
 function Bar({ value, color, label }: { value: number | null; color: string; label: string }) {
   return (
     <div className="flex items-center gap-2" title={`${label}: ${value ?? "not yet"}`}>
-      <div className="h-2 flex-1 overflow-hidden rounded-full bg-card-2">
+      <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-card-2">
         {value != null && <div className="h-full rounded-full" style={{ width: `${value}%`, background: color }} />}
       </div>
       <span className="w-8 text-right text-xs tabular-nums text-muted">{value == null ? "—" : Math.round(value)}</span>

@@ -19,18 +19,23 @@ export default async function AssessmentPage({ searchParams }: { searchParams: P
     <div className="mx-auto min-h-dvh max-w-md px-4 pt-[max(1.5rem,env(safe-area-inset-top))]">
       <div className="animate-enter mb-6 text-center">
         <div className="flex justify-center"><Logo size={48} /></div>
-        <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-accent">{from === "profile" ? "Update self-assessment" : "Step 2 of 2"}</p>
-        <h1 className="mt-1 text-2xl font-bold">Rate your core skills</h1>
-        <p className="mx-auto mt-2 max-w-sm text-sm text-muted">
-          Tap the level that feels true today (you can fine-tune 0–100). This is your own <b className="text-fg">self-assessment</b> — not a test or a
-          scientific measure. UnfoldAI tracks real progress separately, from the tasks you complete.
-        </p>
+        {from !== "profile" && <StepDots step={2} />}
+        <h1 className="mt-3 text-[28px] font-extrabold">Rate your core skills</h1>
+        <p className="mx-auto mt-1 max-w-xs text-sm text-muted">How do you feel today? Not a test — your tasks show real progress.</p>
       </div>
       <AssessmentForm
         action={assessmentAction}
         from={from === "profile" ? "profile" : undefined}
         skills={core.map((s) => ({ id: s.id, name: s.name, description: s.description, initial: self.get(s.id) ?? null }))}
       />
+    </div>
+  );
+}
+
+function StepDots({ step }: { step: number }) {
+  return (
+    <div className="mt-4 flex justify-center gap-1.5" aria-label={`Step ${step} of 2`}>
+      {[1, 2].map((i) => <span key={i} className={`h-1.5 rounded-full ${i <= step ? "w-8 bg-accent" : "w-4 bg-card-2"}`} />)}
     </div>
   );
 }

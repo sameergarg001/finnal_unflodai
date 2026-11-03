@@ -116,19 +116,19 @@ await step("4. Assessment blocks until all 4 rated", async () => {
 });
 await step("5. Rate 4 core skills with one tap each", async () => {
   for (const [i, lvl] of [[0, "Developing"], [1, "Beginner"], [2, "Capable"], [3, "Developing"]]) {
-    await evalJs(`Array.from(document.querySelectorAll('form > div.rounded-3xl'))[${i}].querySelectorAll('button')[${["Beginner", "Developing", "Capable", "Strong", "Expert"].indexOf(lvl)}].click()`);
+    await evalJs(`Array.from(document.querySelectorAll('[data-skill-card]'))[${i}].querySelectorAll('button')[${["Beginner", "Developing", "Capable", "Strong", "Expert"].indexOf(lvl)}].click()`);
   }
   await sleep(300); await click("Complete Assessment"); await waitUrl(/\/dashboard/, 15000);
 });
 await step("6. Home: 4 skills + next step", async () => {
-  await waitText("YOUR NEXT STEP");
+  await waitText("Start in 1 tap");
   const t = await text();
-  for (const s of ["Communication", "Confidence", "Discipline", "Time management", "Add skill", "Ask anything"]) if (!t.includes(s)) throw new Error(`missing ${s}`);
+  for (const s of ["Communication", "Confidence", "Discipline", "Time management", "Add a skill", "I'm stuck"]) if (!t.includes(s)) throw new Error(`missing ${s}`);
   for (const s of ["Problem-solving", "Adaptability"]) if (t.includes(s)) throw new Error(`should not show ${s}`);
   await shot("home_new");
 });
 await step("7. Start in 1 tap → teacher interview", async () => {
-  await click("✨ Start in 1 tap", { exact: false }); await waitUrl(/\/coach\//, 20000); await waitText("Before we start, 3 quick questions");
+  await click("Start in 1 tap", { exact: false }); await waitUrl(/\/coach\//, 20000); await waitText("Before we start, 3 quick questions");
 });
 const sendChat = async (msg) => { await fill('textarea[name=message]', msg); await submitForm('textarea[name=message]'); };
 await step("8. Interview Q1 + Q2", async () => {
@@ -155,12 +155,12 @@ await step("12. Take this task → waiting screen", async () => {
   await click("Take this task"); await waitUrl(/\/challenge\/.+accepted=1/, 20000); await waitText("Your task is waiting for you"); taskUrl = (await url()).split("?")[0];
 });
 await step("13. Tasks tab shows waiting task + badge", async () => {
-  await go("/tasks"); await waitText("WAITING FOR YOU"); await waitText("I tried it");
+  await go("/tasks"); await waitText("Waiting for you"); await waitText("I tried it");
   const badge = await evalJs("document.querySelector('nav [aria-label$=\"waiting\"]')?.innerText"); if (badge !== "1") throw new Error(`badge=${badge}`);
   await shot("tasks");
 });
 await step("14. Feedback flow (completed + answers)", async () => {
-  await click("✓ I tried it"); await waitUrl(/feedback=1/); await waitText("Did you get a chance to try the task?");
+  await click("I tried it"); await waitUrl(/feedback=1/); await waitText("Did you get a chance to try the task?");
   await click("Completed successfully", { exact: false });
   const answers = [
     "In the morning class I explained my mini-project idea to two classmates in three sentences: problem, solution, result. They asked one follow-up question.",
@@ -177,13 +177,13 @@ await step("14. Feedback flow (completed + answers)", async () => {
   await click("Send to my coach"); await waitUrl(new RegExp(taskUrl.replace(/[/]/g, "\\/") + "$"), 20000);
 });
 await step("15. AI analysis + evidence-based score", async () => {
-  await waitText("COACH ANALYSIS", 90000);
-  const t = await text(); if (!t.includes("What went well")) throw new Error("no 'what went well'");
-  if (!t.includes("PROGRESS ASSESSMENT")) throw new Error("no progress assessment");
+  await waitText("Coach analysis", 90000);
+  const t = await text(); if (!t.includes("Went well")) throw new Error("no 'went well'");
+  if (!t.includes("Progress")) throw new Error("no progress assessment");
   await shot("analysis");
 });
 await step("16. Get my next task", async () => {
-  await click("🎯 Get my next task"); await waitUrl(/\/coach\//, 60000); await waitText("Take this task", 60000);
+  await click("Get my next task"); await waitUrl(/\/coach\//, 60000); await waitText("Take this task", 60000);
 });
 await step("17. Second skill: Skip interview → task → abandon", async () => {
   await go("/dashboard"); await click("Discipline", { exact: false }); await waitUrl(/\/skills\//);
@@ -195,8 +195,8 @@ await step("17. Second skill: Skip interview → task → abandon", async () => 
 });
 await step("18. Skill page: plan, history, revise progress", async () => {
   await go("/dashboard"); await click("Confidence", { exact: false }); await waitUrl(/\/skills\//);
-  await waitText("YOUR PLAN"); await waitText("Kabir");
-  await click("↺ Revise previous progress"); await waitUrl(/\/history/); await waitText("Progress changes", 60000);
+  await waitText("Your plan"); await waitText("Kabir");
+  await evalJs("document.querySelector('a[aria-label=\"Revise previous progress\"]').click()"); await waitUrl(/\/history/); await waitText("Progress changes", 60000);
 });
 await step("19. Add skill: search by degree + add", async () => {
   await go("/skills/add?q=btech"); await waitText("Programming");
@@ -210,30 +210,30 @@ await step("20. Custom skill + duplicate blocked", async () => {
   await go("/skills/add?q=zzz"); await fill("#name", "communication"); await submitForm("#name"); await waitText("core skills", 10000);
 });
 await step("21. Reports with real data", async () => {
-  await go("/reports"); await waitText("Skill progress"); const t = await text();
+  await go("/reports"); await waitText("Skills"); const t = await text();
   if (!t.includes("attempted")) throw new Error("no stats"); await shot("reports");
 });
 await step("22. Ask anything", async () => {
   await go("/mentor"); await fill('textarea[name=question]', "How do I stop saying umm when I talk?"); await submitForm('textarea[name=question]');
-  await waitFor(async () => (await evalJs("document.querySelectorAll('.rounded-bl-lg').length")) >= 1, 60000, "coach answer");
+  await waitFor(async () => (await evalJs("document.querySelectorAll('.rounded-bl-md').length")) >= 1, 60000, "coach answer");
 });
 await step("23. Notifications page", async () => { await go("/notifications"); await waitText("Notifications"); });
 await step("24. Profile edit", async () => {
-  await go("/profile"); await click("✏️ Edit profile", { exact: false }); await fill("#profession", "B.Tech CSE, 3rd year");
+  await go("/profile"); await click("Edit profile", { exact: false }); await fill("#profession", "B.Tech CSE, 3rd year");
   await submitForm("#profession"); await waitText("Profile saved", 10000);
 });
 await step("25. Theme light ↔ dark", async () => {
-  await click("🎨 Theme", { exact: false }); await click("☀️ light", { exact: false }); await waitUrl(/saved=preferences/);
+  await click("Theme", { exact: false }); await click("☀️ light", { exact: false }); await waitUrl(/saved=preferences/);
   if ((await evalJs("document.documentElement.dataset.theme")) !== "light") throw new Error("not light");
   await shot("light");
-  await click("🎨 Theme", { exact: false }); await click("🌙 dark", { exact: false }); await waitFor(async () => (await evalJs("document.documentElement.dataset.theme")) === "dark", 10000, "dark");
+  await click("Theme", { exact: false }); await click("🌙 dark", { exact: false }); await waitFor(async () => (await evalJs("document.documentElement.dataset.theme")) === "dark", 10000, "dark");
 });
 await step("26. Notification settings save", async () => {
-  await go("/profile"); await click("🔔 Notifications", { exact: false }); await evalJs("document.querySelector('input[name=n_reports]').click()");
+  await go("/profile"); await click("Notifications", { exact: false }); await evalJs("document.querySelector('input[name=n_reports]').click()");
   await submitForm("input[name=n_reports]"); await waitUrl(/saved=preferences/);
 });
 await step("27. Change password", async () => {
-  await go("/profile"); await click("🔒 Account security", { exact: false });
+  await go("/profile"); await click("Account security", { exact: false });
   await fill('input[name=current]', password); await fill('input[name=next]', "newpass4567"); await submitForm('input[name=next]');
   await waitText("Password changed", 10000); password = "newpass4567";
 });

@@ -9,7 +9,7 @@ import { AppShell, More } from "@/components/AppShell";
 import { ActionForm } from "@/components/ActionForm";
 import { SubmitButton } from "@/components/SubmitButton";
 import { SelfScoreSlider } from "@/components/SelfScoreSlider";
-import { Card, DIFFICULTY_NAMES, EmptyState, Notice, Pill, ProgressBar, SERIES, SectionTitle, Sparkline, TeacherAvatar, btnSecondary, input } from "@/components/ui";
+import { Card, DifficultyDots, Icon, Notice, Pill, SERIES, ScoreRing, SectionTitle, Sparkline, TeacherAvatar, type IconName } from "@/components/ui";
 import { redoInterviewAction, removeSkillAction, startCoachAction, updateSelfScoreAction } from "../../actions";
 
 export const dynamic = "force-dynamic";
@@ -41,126 +41,146 @@ export default async function SkillPage({ params, searchParams }: { params: Prom
   const plan = (us?.plan ?? null) as StoredPlan | null;
   const startLabel = plan?.startSubskill ? fw.subskills.find((x) => x.key === plan.startSubskill)?.label : null;
 
+  const doneTotal = [...doneBySub.values()].reduce((a, b) => a + b, 0);
+  const firstOpen = fw.subskills.findIndex((x) => !doneBySub.get(x.key));
+  const fmtDate = (d: string) => new Date(d).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+
   return (
     <AppShell title={skill.name} back="/dashboard">
       {added && <Notice tone="success">✓ {skill.name} added to your dashboard</Notice>}
       {!us?.isActive && <Notice>This skill isn&apos;t on your dashboard. Add it again from “Add skill” to start a session.</Notice>}
 
-      <div className="flex items-center gap-3.5 rounded-3xl border border-accent/30 bg-gradient-to-br from-accent/15 to-card p-4">
-        <TeacherAvatar emoji={teacher.emoji} size={52} />
-        <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-accent">Your teacher</p>
-          <p className="font-bold">{teacher.name} <span className="font-normal text-muted">· {teacher.title}</span></p>
-          <p className="text-sm text-muted">{teacher.tagline}</p>
+      {/* Hero: score ring + teacher */}
+      <Card className="!p-6">
+        <div className="flex items-center gap-5">
+          <ScoreRing value={assessed ? sc!.score : (sc?.selfScore ?? null)} marker={assessed ? (sc?.selfScore ?? null) : null} size={124} stroke={12} caption={assessed ? "UnfoldAI" : "self-rated"} color={assessed ? "var(--accent)" : "var(--series-self)"} />
+          <div className="min-w-0 flex-1 space-y-2.5">
+            <Legend color={SERIES.evidence} label="UnfoldAI" value={assessed ? sc!.score : null} />
+            <Legend color={SERIES.self} label="You" value={sc?.selfScore ?? null} />
+            <div className="pt-1"><Sparkline values={trend} width={120} height={28} /></div>
+          </div>
         </div>
-      </div>
-
-      <Card>
-        <p className="text-sm leading-relaxed text-muted">{skill.description}</p>
-        <div className="mt-5 space-y-4">
-          <ScoreRow label="UnfoldAI assessment" sub={assessed ? `based on ${sc!.evidenceCount} task${sc!.evidenceCount === 1 ? "" : "s"}` : "not assessed yet — complete a task"} value={assessed ? sc!.score : null} color={SERIES.evidence} />
-          <ScoreRow label="Your self-assessment" sub="your own rating, not verified" value={sc?.selfScore ?? null} color={SERIES.self} />
-        </div>
-        <div className="mt-4 flex items-center justify-between border-t border-line pt-4 text-sm">
-          <span className="text-muted">Trend</span>
-          <Sparkline values={trend} width={140} height={32} />
+        <div className="mt-5 flex items-center gap-3 rounded-full bg-card-2/60 py-1.5 pl-1.5 pr-4">
+          <TeacherAvatar emoji={teacher.emoji} size={40} />
+          <p className="min-w-0 flex-1 truncate text-sm"><b className="font-semibold">{teacher.name}</b> <span className="text-muted">· {teacher.title}</span></p>
         </div>
       </Card>
 
-      {plan && (
-        <Card className="space-y-3">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold uppercase tracking-wider text-accent-2">📋 Your plan</p>
-            {plan.targetDate && <Pill tone="accent">by {new Date(plan.targetDate).toLocaleDateString(undefined, { day: "numeric", month: "short" })}</Pill>}
-          </div>
-          <PlanRow label="Goal">{plan.goal}</PlanRow>
-          <PlanRow label="Where you are now">{plan.currentLevel}</PlanRow>
-          <PlanRow label="Timeline">{plan.timeline}</PlanRow>
-          <PlanRow label="Starting with">{startLabel ? `${startLabel} — ` : ""}{plan.firstFocus}</PlanRow>
-        </Card>
-      )}
-
       {active ? (
-        <Link href={`/challenge/${active.id}`} className="block rounded-3xl border border-accent-2/30 bg-accent-2/10 p-5 active:scale-[0.99]">
-          <p className="text-xs font-semibold text-accent-2">⏳ Your task is waiting for you</p>
-          <p className="mt-1 text-lg font-bold">{active.title}</p>
-          <p className="mt-1 text-sm text-muted">Tap to see it, ask for help, or tell your coach how it went.</p>
+        <Link href={`/challenge/${active.id}`} className="flex items-center gap-4 rounded-[28px] bg-sun-soft p-5 shadow-soft active:scale-[0.99]">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-sun text-[#3a2a00]"><Icon name="clock" /></span>
+          <div className="min-w-0 flex-1">
+            <p className="text-[13px] font-medium text-sun-ink">Task waiting</p>
+            <p className="font-display text-lg font-bold leading-snug">{active.title}</p>
+          </div>
+          <Icon name="chevron" className="h-5 w-5 text-muted" />
         </Link>
       ) : (
-        <div className="space-y-3">
-          <ActionForm action={startCoachAction}>
+        <div className="flex gap-2">
+          <ActionForm action={startCoachAction} className="flex-1">
             <input type="hidden" name="skillId" value={skill.id} />
             {!openConv && <input type="hidden" name="fresh" value="1" />}
-            <SubmitButton pendingText={`Opening ${teacher.name}…`}>✨ {openConv ? `Continue with ${teacher.name}` : `Start improving with ${teacher.name}`}</SubmitButton>
+            <SubmitButton pendingText={`Opening ${teacher.name}…`}><Icon name="spark" /> {openConv ? `Continue with ${teacher.name}` : `Start improving with ${teacher.name}`}</SubmitButton>
           </ActionForm>
-          <Link href={`/skills/${skill.id}/history`} className={btnSecondary}>↺ Revise previous progress</Link>
+          {past.length > 0 && (
+            <Link href={`/skills/${skill.id}/history`} aria-label="Revise previous progress" title="Revise previous progress" className="flex h-13 w-13 shrink-0 items-center justify-center rounded-full bg-card-2 active:scale-95">
+              <Icon name="refresh" />
+            </Link>
+          )}
         </div>
       )}
 
-      <ActionForm action={startCoachAction} className="rounded-3xl border border-line bg-card p-3">
+      <ActionForm action={startCoachAction} className="glass flex items-center gap-2 rounded-full py-1.5 pl-5 pr-1.5">
         <input type="hidden" name="skillId" value={skill.id} />
-        <div className="flex gap-2">
-          <textarea name="message" rows={1} required maxLength={1500} placeholder={`Message ${teacher.name}…`} className={`${input} !mt-0 min-h-12 flex-1 resize-none !border-0 !bg-transparent`} />
-          <SubmitButton className="!min-h-12 !w-12 !rounded-full !p-0" pendingText="">➤</SubmitButton>
-        </div>
+        <textarea name="message" rows={1} required maxLength={1500} placeholder={`Message ${teacher.name}…`} aria-label={`Message ${teacher.name}`} className="min-h-11 flex-1 resize-none bg-transparent py-2.5 text-base placeholder:text-muted focus:outline-none" />
+        <SubmitButton className="!h-11 !min-h-0 !w-11 !rounded-full !p-0 !shadow-none" pendingText=""><Icon name="send" /></SubmitButton>
       </ActionForm>
 
-      <SectionTitle>Subskills</SectionTitle>
-      <div className="flex flex-wrap gap-2">
-        {fw.subskills.map((s) => (
-          <span key={s.key} className="rounded-full border border-line bg-card px-3 py-1.5 text-sm">
-            {s.label}
-            {doneBySub.get(s.key) ? <span className="ml-1.5 text-success">✓{doneBySub.get(s.key)}</span> : null}
-          </span>
-        ))}
-      </div>
-
-      {history.weaknesses.length > 0 && (
+      {plan && (
         <>
-          <SectionTitle>What we&apos;re working on</SectionTitle>
-          <Card>
-            <ul className="space-y-2 text-sm">
-              {history.weaknesses.slice(0, 4).map((w) => <li key={w.text} className="flex gap-2"><span className="text-warn">•</span>{w.text}</li>)}
-            </ul>
-          </Card>
+          <SectionTitle action={plan.targetDate ? <Pill tone="sun"><Icon name="calendar" className="h-3.5 w-3.5" />{fmtDate(plan.targetDate)}</Pill> : undefined}>Your plan</SectionTitle>
+          <div className="grid grid-cols-2 gap-2.5">
+            <PlanTile icon="target" label="Goal">{plan.goal}</PlanTile>
+            <PlanTile icon="flag" label="Now">{plan.currentLevel}</PlanTile>
+            <PlanTile icon="calendar" label="Timeline">{plan.timeline}</PlanTile>
+            <PlanTile icon="spark" label="Start with">{startLabel ?? plan.firstFocus}</PlanTile>
+          </div>
         </>
       )}
 
-      {(past.length > 0 || !active) && <SectionTitle action={past.length > 0 && <Link href={`/skills/${skill.id}/history`} className="text-sm font-medium text-accent">See all</Link>}>Previous activity</SectionTitle>}
-      {past.length ? (
-        <Card className="divide-y divide-line !py-1">
-          {past.slice(0, 3).map((c) => (
-            <Link key={c.id} href={`/challenge/${c.id}`} className="flex items-center justify-between gap-3 py-3.5">
-              <div className="min-w-0">
-                <p className="truncate font-medium">{c.title}</p>
-                <p className="text-xs text-muted">{c.reflection ? labelStatus(c.reflection.completionStatus) : c.status} · {DIFFICULTY_NAMES[c.difficulty]}</p>
-              </div>
-              <span className="text-muted">›</span>
-            </Link>
-          ))}
-        </Card>
-      ) : active ? null : (
-        <EmptyState icon="🎯" title="No tasks yet" body={`Start improving and ${teacher.name} will design your first task around your real situation.`} />
+      <SectionTitle action={<span className="text-sm text-muted">{doneTotal} done</span>}>Path</SectionTitle>
+      <Card className="!py-4">
+        <ol className="relative">
+          {fw.subskills.map((s, i) => {
+            const n = doneBySub.get(s.key) ?? 0;
+            const current = i === firstOpen;
+            return (
+              <li key={s.key} className="relative flex items-center gap-3.5 py-2">
+                {i < fw.subskills.length - 1 && <span className={`absolute left-[15px] top-[calc(50%+16px)] h-[calc(100%-32px)] w-0.5 rounded ${n ? "bg-accent" : "bg-card-2"}`} aria-hidden />}
+                <span className={`relative z-[1] flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${n ? "bg-accent text-on-accent" : current ? "bg-sun text-[#3a2a00] ring-4 ring-sun/25" : "bg-card-2 text-muted"}`}>
+                  {n ? <Icon name="check" className="h-4 w-4" strokeWidth={2.6} /> : i + 1}
+                </span>
+                <span className={`flex-1 text-[15px] ${n || current ? "font-semibold" : "text-muted"}`}>{s.label}</span>
+                {n > 0 && <span className="text-xs font-semibold text-accent">×{n}</span>}
+              </li>
+            );
+          })}
+        </ol>
+      </Card>
+
+      {history.weaknesses.length > 0 && (
+        <>
+          <SectionTitle>Working on</SectionTitle>
+          <div className="flex flex-wrap gap-2">
+            {history.weaknesses.slice(0, 4).map((w) => <span key={w.text} className="rounded-2xl bg-sun-soft px-3.5 py-2 text-sm">{w.text}</span>)}
+          </div>
+        </>
       )}
 
-      {plan && !active && (
-        <More label="Goals changed? Redo the interview">
-          <p className="mb-3 text-sm text-muted">{teacher.name} will ask the 3 questions again and make a new plan. Your history is kept.</p>
-          <ActionForm action={redoInterviewAction}>
+      {past.length > 0 && (
+        <>
+          <SectionTitle action={<Link href={`/skills/${skill.id}/history`} className="text-sm font-semibold text-accent">See all</Link>}>Recent</SectionTitle>
+          <Card className="divide-y divide-line !py-1">
+            {past.slice(0, 3).map((c) => (
+              <Link key={c.id} href={`/challenge/${c.id}`} className="flex items-center gap-3 py-3.5">
+                <StatusDot status={c.reflection?.completionStatus ?? c.status} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium">{c.title}</p>
+                  <p className="text-xs text-muted">{c.reflection ? labelStatus(c.reflection.completionStatus) : c.status}</p>
+                </div>
+                <DifficultyDots value={c.difficulty} />
+              </Link>
+            ))}
+          </Card>
+        </>
+      )}
+      <div className="space-y-2.5 pt-3">
+        {plan && !active && (
+          <More label="Goals changed? Redo the interview">
+            <p className="mb-3 text-sm text-muted">3 questions again, new plan. History stays.</p>
+            <ActionForm action={redoInterviewAction}>
+              <input type="hidden" name="skillId" value={skill.id} />
+              <SubmitButton variant="secondary" pendingText="Opening…">Redo interview</SubmitButton>
+            </ActionForm>
+          </More>
+        )}
+
+        <More label="Update my self-assessment">
+          <ActionForm action={updateSelfScoreAction} className="space-y-3">
             <input type="hidden" name="skillId" value={skill.id} />
-            <SubmitButton variant="secondary" pendingText="Opening…">Redo interview</SubmitButton>
+            <SelfScoreSlider initial={sc?.selfScore ?? 50} />
+            <p className="text-xs text-muted">Only your own rating changes. UnfoldAI&apos;s score moves with task evidence.</p>
+            <SubmitButton variant="secondary">Save self-assessment</SubmitButton>
           </ActionForm>
         </More>
-      )}
 
-      <More label="Update my self-assessment">
-        <ActionForm action={updateSelfScoreAction} className="space-y-3">
-          <input type="hidden" name="skillId" value={skill.id} />
-          <SelfScoreSlider initial={sc?.selfScore ?? 50} />
-          <p className="text-xs text-muted">Your self-rating is shown next to UnfoldAI&apos;s assessment. Once there is evidence from tasks, changing it won&apos;t change UnfoldAI&apos;s score.</p>
-          <SubmitButton variant="secondary">Save self-assessment</SubmitButton>
-        </ActionForm>
-      </More>
+        {(skill.description || fw.progression) && (
+          <More label={`About ${skill.name}`}>
+            <p className="text-sm leading-relaxed text-muted">{skill.description}</p>
+            {fw.progression && <p className="mt-2 text-sm leading-relaxed text-muted">{fw.progression}</p>}
+          </More>
+        )}
+      </div>
 
       {skill.category !== "core" && us?.isActive && (
         <form action={removeSkillAction} className="pt-2 text-center">
@@ -168,31 +188,35 @@ export default async function SkillPage({ params, searchParams }: { params: Prom
           <button className="text-sm text-muted underline">Remove from dashboard (history is kept)</button>
         </form>
       )}
-      {fw.progression && <p className="px-1 text-xs leading-relaxed text-muted">How this skill progresses: {fw.progression}</p>}
     </AppShell>
   );
 }
 
-function PlanRow({ label, children }: { label: string; children: React.ReactNode }) {
+function Legend({ color, label, value }: { color: string; label: string; value: number | null }) {
   return (
-    <div>
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">{label}</p>
-      <p className="mt-0.5 text-[15px]">{children}</p>
+    <div className="flex items-center gap-2">
+      <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: color }} />
+      <span className="flex-1 text-sm text-muted">{label}</span>
+      <span className="font-display text-lg font-bold tabular-nums">{value == null ? "—" : Math.round(value)}</span>
     </div>
   );
 }
 
-function ScoreRow({ label, sub, value, color }: { label: string; sub: string; value: number | null; color: string }) {
+function PlanTile({ icon, label, children }: { icon: IconName; label: string; children: React.ReactNode }) {
   return (
-    <div>
-      <div className="mb-1.5 flex items-end justify-between">
-        <div>
-          <p className="text-sm font-semibold"><span className="mr-1.5 inline-block h-2.5 w-2.5 rounded-full" style={{ background: color }} />{label}</p>
-          <p className="text-[11px] text-muted">{sub}</p>
-        </div>
-        <p className="text-xl font-bold tabular-nums">{value == null ? "—" : Math.round(value)}<span className="text-xs text-muted">/100</span></p>
-      </div>
-      <ProgressBar value={value ?? 0} color={color} label={label} />
+    <div className="glass rounded-[22px] p-4">
+      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent-soft text-accent"><Icon name={icon} className="h-4 w-4" /></span>
+      <p className="mt-2.5 text-xs text-muted">{label}</p>
+      <p className="mt-0.5 line-clamp-3 text-sm font-medium leading-snug">{children}</p>
     </div>
+  );
+}
+
+function StatusDot({ status }: { status: string }) {
+  const tone = status === "completed" ? "bg-accent text-on-accent" : status === "partial" ? "bg-sun text-[#3a2a00]" : "bg-card-2 text-muted";
+  return (
+    <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${tone}`}>
+      <Icon name={status === "completed" || status === "partial" ? "check" : "refresh"} className="h-4 w-4" />
+    </span>
   );
 }

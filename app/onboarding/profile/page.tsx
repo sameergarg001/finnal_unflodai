@@ -10,7 +10,7 @@ export default async function OnboardingProfilePage() {
   const user = await requireUser();
   if (user.profile?.onboardingDone && user.profile.assessmentDone) redirect("/dashboard");
   return (
-    <AuthScreen title="Tell us about you" subtitle="Step 1 of 2 · helps your mentor personalise everything">
+    <AuthScreen title="Tell us about you" subtitle="Step 1 of 2 · so your mentor gets you">
       <ProfileForm
         action={onboardingProfileAction}
         allowSkip

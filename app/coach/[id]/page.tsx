@@ -3,7 +3,7 @@ import { requireReadyUser } from "@/server/auth/session";
 import { getConversationForUser, quickRepliesFor } from "@/server/services/challenges";
 import { toChallengeView } from "@/server/views";
 import { teacherOf } from "@/server/services/skills";
-import { TeacherAvatar } from "@/components/ui";
+import { Icon, TeacherAvatar, iconBtn } from "@/components/ui";
 import { AppShell } from "@/components/AppShell";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { CoachChat } from "@/components/CoachChat";
@@ -42,14 +42,19 @@ export default async function CoachPage({ params }: { params: Promise<{ id: stri
     <AppShell
       tabs={false}
       header={
-        <div className="flex h-14 items-center gap-3 px-4">
-          <a href={`/skills/${conv.skillId}`} aria-label="Back" className="-ml-2 rounded-full p-2 text-muted active:bg-card-2">
-            <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><path d="M15 18l-6-6 6-6" /></svg>
+        <div className="flex h-16 items-center gap-3 px-4">
+          <a href={`/skills/${conv.skillId}`} aria-label="Back" className={iconBtn}>
+            <Icon name="back" />
           </a>
-          <TeacherAvatar emoji={teacher.emoji} size={38} />
-          <div className="min-w-0">
-            <p className="truncate font-bold leading-tight">{teacher.name}</p>
-            <p className="truncate text-[11px] text-muted"><span className="text-success">●</span> {teacher.title} · knows your history</p>
+          <div className="glass flex min-w-0 flex-1 items-center gap-3 rounded-full py-1 pl-1 pr-4">
+            <span className="relative">
+              <TeacherAvatar emoji={teacher.emoji} size={40} />
+              <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-success ring-2 ring-card-solid" aria-hidden />
+            </span>
+            <div className="min-w-0">
+              <p className="truncate font-display font-bold leading-tight">{teacher.name}</p>
+              <p className="truncate text-xs text-muted">{teacher.title}</p>
+            </div>
           </div>
         </div>
       }

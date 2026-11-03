@@ -10,7 +10,7 @@ export default async function SignupPage() {
   const user = await getCurrentUser();
   if (user) redirect(onboardingPath(user) ?? "/dashboard");
   return (
-    <AuthScreen title="Create your account" subtitle="It takes less than a minute" back="/welcome">
+    <AuthScreen title="Create your account" subtitle="Under a minute" back="/welcome">
       <GoogleButton enabled={googleConfigured()} />
       <div className="my-5 flex items-center gap-3 text-xs text-muted"><span className="h-px flex-1 bg-line" />or with email<span className="h-px flex-1 bg-line" /></div>
       <AuthForm mode="signup" action={signupAction} />

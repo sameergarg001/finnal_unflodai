@@ -24,7 +24,7 @@ export default async function HistoryPage({ params }: { params: Promise<{ id: st
   return (
     <AppShell title={`${skill.name} · history`} back={`/skills/${id}`}>
       {challenges.length === 0 ? (
-        <EmptyState icon="📖" title="Nothing to revise yet" body="Your tasks, feedback and analyses for this skill will appear here." action={<Link href={`/skills/${id}`} className="font-semibold text-accent">Start improving →</Link>} />
+        <EmptyState icon="📖" title="Nothing to revise yet" body="Tasks and analyses will appear here." action={<Link href={`/skills/${id}`} className="font-semibold text-accent">Start improving</Link>} />
       ) : (
         <>
           <Suspense fallback={<Card className="space-y-2"><Skeleton className="h-4 w-1/2" /><Skeleton className="h-16" /><Skeleton className="h-16" /></Card>}>
@@ -81,7 +81,7 @@ async function Review({ userId, skillId }: { userId: string; skillId: string }) 
       <p className="text-[15px] leading-relaxed">{review.summary}</p>
       <Block title="What you have improved" items={review.improved} tone="text-success" empty="No clear improvement measured yet — that's normal early on." />
       <Block title="What still needs work" items={review.stillNeedsWork} tone="text-warn" />
-      <div className="rounded-2xl bg-accent/10 p-3.5 text-sm"><p className="font-semibold text-accent">What we should focus on next</p><p className="mt-1">{review.focusNext}</p></div>
+      <div className="rounded-[20px] bg-accent-soft p-4 text-sm"><p className="font-semibold text-accent">Focus next</p><p className="mt-1">{review.focusNext}</p></div>
       <p className="text-[11px] text-muted">Based on {review.basedOn} reported challenge{review.basedOn === 1 ? "" : "s"}.</p>
     </Card>
   );
@@ -127,7 +127,7 @@ function List({ title, items }: { title: string; items: Item[] }) {
 
 function Mini({ value, label }: { value: number; label: string }) {
   return (
-    <div className="rounded-2xl border border-line bg-card py-3">
+    <div className="glass rounded-[20px] py-3">
       <p className="text-lg font-bold">{value}</p>
       <p className="text-[11px] text-muted">{label}</p>
     </div>

@@ -7,9 +7,11 @@ import { Logo } from "@/components/ui";
 export const dynamic = "force-dynamic";
 
 /** "Ask anything": a general chat with the coach (reached from Home). */
-export default async function AskAnythingPage() {
+export default async function AskAnythingPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const user = await requireReadyUser();
+  const { q } = await searchParams;
   const messages = await getMentorMessages(user.id, null);
+  const draft = (q ?? "").trim().slice(0, 1000);
 
   return (
     <AppShell title="Ask anything" back="/dashboard">
@@ -20,7 +22,7 @@ export default async function AskAnythingPage() {
           <p className="mx-auto mt-1 max-w-xs text-sm text-muted">I know your skills, your tasks and what you find hard. For today&apos;s task, open a skill on Home.</p>
         </div>
       )}
-      <MentorChat messages={messages} placeholder="Ask your coach anything…" />
+      <MentorChat messages={messages} placeholder="Ask your coach anything…" draft={draft} />
     </AppShell>
   );
 }

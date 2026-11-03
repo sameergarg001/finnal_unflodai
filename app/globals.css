@@ -57,6 +57,12 @@ html {
 }
 .animate-enter { animation: enter 0.28s ease-out both; }
 
+@keyframes wait-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+.wait-pulse { animation: wait-pulse 1.6s ease-in-out infinite; }
+
 /* Range slider */
 input[type="range"].slider {
   -webkit-appearance: none;

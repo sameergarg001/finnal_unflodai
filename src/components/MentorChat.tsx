@@ -57,10 +57,12 @@ export function MentorChat({
   messages,
   challengeId,
   placeholder = "e.g. What do I say if someone interrupts me?",
+  draft = "",
 }: {
   messages: ChatMessage[];
   challengeId?: string;
   placeholder?: string;
+  draft?: string;
 }) {
   const [state, action] = useActionState(askMentorAction, undefined);
   const formRef = useRef<HTMLFormElement>(null);
@@ -86,7 +88,7 @@ export function MentorChat({
         <Pending />
         {challengeId && <input type="hidden" name="challengeId" value={challengeId} />}
         <div className="flex gap-2">
-          <textarea name="question" rows={1} required maxLength={1000} placeholder={placeholder} className={`${input} !mt-0 min-h-12 resize-none`} />
+          <textarea name="question" rows={1} required maxLength={1000} placeholder={placeholder} defaultValue={draft} autoFocus={Boolean(draft)} className={`${input} !mt-0 min-h-12 resize-none`} />
           <SendButton />
         </div>
         {state?.error && <p className="rounded-2xl bg-danger/10 px-4 py-3 text-sm text-danger">{state.error}</p>}

@@ -7,9 +7,9 @@ import { teacherOf } from "./skills";
  * screen always answers "what should I do next?".
  */
 export type NextStep =
-  | { kind: "feedback"; challengeId: string; title: string; skill: string; extraActive: number }
+  | { kind: "feedback"; challengeId: string; title: string; skill: string; extraActive: number; teacher: string; emoji: string }
   | { kind: "continue"; conversationId: string; skill: string; teacher: string; emoji: string }
-  | { kind: "next"; challengeId: string; skill: string }
+  | { kind: "next"; challengeId: string; skill: string; teacher: string; emoji: string }
   | { kind: "start"; skillId: string; skill: string; teacher: string; emoji: string };
 
 const WEEK = 7 * 86_400_000;
@@ -18,7 +18,8 @@ export async function getNextStep(userId: string): Promise<NextStep | null> {
   const active = await db.challenge.findMany({ where: { userId, status: "active" }, include: { skill: true }, orderBy: { acceptedAt: "desc" } });
   if (active.length) {
     const ch = active[0];
-    return { kind: "feedback", challengeId: ch.id, title: ch.title, skill: ch.skill.name, extraActive: active.length - 1 };
+    const t = teacherOf(ch.skill);
+    return { kind: "feedback", challengeId: ch.id, title: ch.title, skill: ch.skill.name, extraActive: active.length - 1, teacher: t.name, emoji: t.emoji };
   }
 
   const open = await db.conversation.findFirst({
@@ -39,7 +40,10 @@ export async function getNextStep(userId: string): Promise<NextStep | null> {
   });
   if (lastDone && lastDone.completedAt && Date.now() - lastDone.completedAt.getTime() < WEEK) {
     const later = await db.challenge.count({ where: { userId, skillId: lastDone.skillId, assignedAt: { gt: lastDone.assignedAt }, status: { in: ["active", "done", "proposed"] } } });
-    if (!later) return { kind: "next", challengeId: lastDone.id, skill: lastDone.skill.name };
+    if (!later) {
+      const t = teacherOf(lastDone.skill);
+      return { kind: "next", challengeId: lastDone.id, skill: lastDone.skill.name, teacher: t.name, emoji: t.emoji };
+    }
   }
 
   const skillId = await suggestSkillId(userId);

@@ -55,6 +55,7 @@ async function waitFor(pred, ms = 20000, label = "") {
 const waitText = (t, ms) => waitFor(async () => (await text()).toLowerCase().includes(t.toLowerCase()), ms, `"${t}"`);
 const waitUrl = (re, ms) => waitFor(async () => re.test(await url()), ms, `url ${re}`);
 async function click(t, { exact = true, nth = 0 } = {}) {
+  await waitFor(async () => await evalJs(`Array.from(document.querySelectorAll('button, a, [role=button], label, summary')).some(e => e.offsetParent !== null && e.innerText.toLowerCase().includes(${JSON.stringify(t.toLowerCase())}))`), 15000, `"${t}"`).catch(() => {});
   const r = await evalJs(`(() => {
     const t = ${JSON.stringify(t)};
     const els = Array.from(document.querySelectorAll('button, a, [role=button], label, summary')).filter(e => e.offsetParent !== null && !e.disabled && (${exact} ? e.innerText.trim().toLowerCase() === t.toLowerCase() : e.innerText.toLowerCase().includes(t.toLowerCase())));
@@ -65,6 +66,8 @@ async function click(t, { exact = true, nth = 0 } = {}) {
   if (r !== "ok") throw new Error(`click: "${t}" not found`);
 }
 async function fill(selector, value) {
+  // Pages stream in behind a loading screen: wait for the field to appear.
+  await waitFor(async () => await evalJs(`!!document.querySelector(${JSON.stringify(selector)})`), 15000, selector).catch(() => {});
   const r = await evalJs(`(() => {
     const el = document.querySelector(${JSON.stringify(selector)});
     if (!el) return 'NOT FOUND';
@@ -127,19 +130,27 @@ await step("6. Home: 4 skills + next step", async () => {
   for (const s of ["Problem-solving", "Adaptability"]) if (t.includes(s)) throw new Error(`should not show ${s}`);
   await shot("home_new");
 });
-await step("7. Start in 1 tap → teacher interview", async () => {
-  await click("Start in 1 tap", { exact: false }); await waitUrl(/\/coach\//, 20000); await waitText("Before we start, 3 quick questions");
+const coachMsgs = () => evalJs("document.querySelectorAll('main .glass.rounded-bl-md, main [class*=rounded-bl-md]').length");
+await step("7. Start in 1 tap → AI mentor opens the conversation", async () => {
+  await click("Start in 1 tap", { exact: false }); await waitUrl(/\/coach\//, 30000);
+  await waitFor(async () => (await coachMsgs()) >= 1, 30000, "AI opening message");
 });
 const sendChat = async (msg) => { await fill('textarea[name=message]', msg); await submitForm('textarea[name=message]'); };
-await step("8. Interview Q1 + Q2", async () => {
+await step("8. Natural conversation: goal + real situation", async () => {
+  let n = await coachMsgs();
   await sendChat("I want to explain my ideas clearly in class without getting nervous");
-  await waitText("felt hard for you", 20000);
-  await sendChat("Yesterday in the lab viva I knew the answer but mixed up my words and stopped");
-  await waitText("By when would you like to see a real difference?", 20000);
+  await waitFor(async () => (await coachMsgs()) > n || (await text()).includes("Take this task"), 60000, "mentor reply 1");
+  if (!(await text()).includes("Take this task")) {
+    n = await coachMsgs();
+    await sendChat("Yesterday in the lab viva I knew the answer but mixed up my words and stopped");
+    await waitFor(async () => (await coachMsgs()) > n || (await text()).includes("Take this task"), 60000, "mentor reply 2");
+  }
 });
-await step("9. Timeline chip → plan + today's task", async () => {
-  await click("In 1 month"); await waitText("Take this task", 60000);
-  const t = await text(); if (!/YOUR PLAN/i.test(t)) throw new Error("no plan shown"); if (!/TODAY.S TASK/i.test(t)) throw new Error("no today's task label");
+await step("9. Plan + today's task with a reason", async () => {
+  if (!(await text()).includes("Take this task")) await sendChat("Okay, give me a task for this.");
+  await waitText("Take this task", 90000);
+  const t = await text(); if (!/Your plan/i.test(t)) throw new Error("no plan shown"); if (!/Today.s task/i.test(t)) throw new Error("no today's task label");
+  if (!/Why this task/i.test(t)) throw new Error("no reason for the task");
   await shot("coach_task");
 });
 await step("10. Make it easier → new task", async () => {
@@ -169,10 +180,11 @@ await step("14. Feedback flow (completed + answers)", async () => {
     "Starting was easy because I practised, and my first sentence came out clearly.",
     "Next time I'll prepare two possible questions and short answers.",
   ];
+  // Questions are generated for each task (3–5), so answer until the box disappears.
   for (const a of answers) {
-    await waitFor(async () => (await evalJs("!!document.querySelector('textarea:not([name])')")), 5000, "answer box");
+    if (!(await evalJs("!!document.querySelector('textarea:not([name])')"))) break;
     await fill("textarea:not([name])", a); await click("Next");
-    await sleep(250);
+    await sleep(300);
   }
   await click("Send to my coach"); await waitUrl(new RegExp(taskUrl.replace(/[/]/g, "\\/") + "$"), 20000);
 });
@@ -187,11 +199,12 @@ await step("16. Get my next task", async () => {
 });
 await step("17. Second skill: Skip interview → task → abandon", async () => {
   await go("/dashboard"); await click("Discipline", { exact: false }); await waitUrl(/\/skills\//);
-  await click("Start improving with Meera", { exact: false }); await waitText("Before we start", 20000);
-  await click("Skip — just start"); await waitText("Take this task", 60000);
+  await click("Start improving with Meera", { exact: false }); await waitUrl(/\/coach\//, 30000);
+  await waitFor(async () => (await coachMsgs()) >= 1, 30000, "AI opening message");
+  await sendChat("Just give me a small task to start, I keep putting off my study plan."); await waitText("Take this task", 90000);
   await click("Take this task"); await waitText("Your task is waiting for you", 20000);
   await noConfirm(); await click("Abandon task"); await waitUrl(/\/coach\//, 20000);
-  await waitText("set it aside", 10000);
+  await waitText("Task set aside", 15000);
 });
 await step("18. Skill page: plan, history, revise progress", async () => {
   await go("/dashboard"); await click("Confidence", { exact: false }); await waitUrl(/\/skills\//);
@@ -242,7 +255,11 @@ await step("28. Logout → login with new password", async () => {
   await go("/login"); await fill('input[name=email]', email); await fill('input[name=password]', password); await click("Sign in"); await waitUrl(/\/dashboard/, 15000);
 });
 await step("29. Wrong password rejected", async () => {
-  const r = await fetch(BASE + "/dashboard", { redirect: "manual" }); if (r.status !== 307) throw new Error("dashboard not protected");
+  // Signed out: no private content, and a redirect to /welcome (307, or streamed behind the loading screen).
+  const r = await fetch(BASE + "/dashboard", { redirect: "manual" });
+  const body = r.status === 200 ? await r.text() : "";
+  if (/My skills|Your growth|Good (morning|afternoon|evening)/.test(body)) throw new Error("dashboard leaked content");
+  if (r.status !== 307 && !/NEXT_REDIRECT;replace;\/welcome/.test(body)) throw new Error("dashboard not protected");
 });
 await step("30. Delete account", async () => {
   await go("/profile"); await click("Delete account", { exact: false }); await fill('input[name=confirm]', "DELETE");

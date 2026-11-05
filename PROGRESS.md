@@ -43,6 +43,17 @@ Decisions: keep the current Next.js app (not Expo/MongoDB), follow the new onboa
 
 ## Log
 
+### 2026-11-03 (AI engine)
+- **Real AI mentor, no scripted answers ✅** Every chat message gets one AI "turn" that understands what you mean (question, situation, difficulty, task request, report…), remembers it, replies, and decides the next step. The old fixed 3-question interview, template greetings and canned replies are gone. If the AI is down, the app says so instead of faking an answer.
+- **Backup AI:** if Groq is busy (free per-minute limit), Gemini answers automatically.
+- **Memory with evidence:** weaknesses and strengths are saved with your exact words, where they show up, how often, first/last seen. One sentence = "early guess"; repeated in another chat or task = "confirmed"; doing the thing you used to avoid = "improving" → "resolved". You can mark any of them "Not true" or delete it (skill page → "What … has noticed").
+- **Situations:** when you describe where you are ("college canteen, students I don't know"), it's remembered and tasks use it (with a backup version if the place isn't available).
+- **Stages by score:** Foundation 0–20 · Beginner 21–40 · Developing 41–60 · Improving 61–80 · Advanced 81–100 — changes tone and task difficulty, always combined with real evidence.
+- **Tasks:** the app picks the target weakness/subskill and difficulty; the AI tailors the task, explains "why this task", and writes 3–5 questions for afterwards.
+- **Fair scoring:** the AI rates the attempt (skill shown, how well, discomfort handled, difficulty, improvement, reflection) and how specific your account is; the app turns that into: excellent +1…+3, good +0.5…+1.5, partial 0…+0.5, otherwise 0. No points for vague "I did it". Failing or skipping is never penalised; only 3 poor, well-described attempts in a row give −0.5. Every change is explained ("went from 35 to 36.8 because…") and you can "Ask for a review" once per task.
+- **Baseline kept forever:** your first self-rating is never overwritten. Home shows overall score at start vs now (same skills compared). Subskill scores appear on the skill page once tested.
+- Tests: 29 unit tests pass; real-AI scenario tests in `scripts/ai-scenarios.ts`.
+
 ### 2026-11-03
 - **New look ✅** Redesigned every screen based on the 3 reference images. Light sage "mist" theme is now the default (dark "forest" theme still in Profile → Theme). Frosted-glass cards, pine-green buttons, sun-yellow for progress. New fonts (Bricolage Grotesque + Figtree) and a new logo mark.
 - Home: "Your growth" ring (overall score) + one bar per skill, a single next-step card, pill-shaped skill rows with score/100, Ask anything bar. Floating tab dock.

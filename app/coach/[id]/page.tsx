@@ -4,6 +4,9 @@ import { getConversationForUser, quickRepliesFor } from "@/server/services/chall
 import { toChallengeView } from "@/server/views";
 import { teacherOf } from "@/server/services/skills";
 import { Icon, TeacherAvatar, iconBtn } from "@/components/ui";
+import { db } from "@/lib/db";
+import { getInsights } from "@/server/intelligence/evidence";
+import { stageForScore } from "@/server/intelligence/stages";
 import { AppShell } from "@/components/AppShell";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { CoachChat } from "@/components/CoachChat";
@@ -26,6 +29,19 @@ export default async function CoachPage({ params }: { params: Promise<{ id: stri
   if (!conv) notFound();
 
   const teacher = teacherOf(conv.skill);
+  const [insights, sc] = await Promise.all([
+    getInsights(user.id, conv.skillId),
+    db.skillScore.findUnique({ where: { userId_skillId: { userId: user.id, skillId: conv.skillId } } }),
+  ]);
+  const cc = (conv.context ?? {}) as { goal?: string | null; situation?: { summary?: string } | null };
+  const focus = insights.find((i) => i.kind === "blocker");
+  const score = sc ? (sc.evidenceCount > 0 ? sc.score : (sc.selfScore ?? sc.score)) : null;
+  const understood = [
+    cc.goal ? { icon: "target" as const, label: "Goal", text: cc.goal } : null,
+    cc.situation?.summary ? { icon: "flag" as const, label: "Situation", text: cc.situation.summary } : null,
+    focus ? { icon: "trend" as const, label: focus.status === "confirmed" ? "Working on" : "Noticing", text: focus.text } : null,
+    score != null ? { icon: "spark" as const, label: "Stage", text: `${stageForScore(score).name} · ${Math.round(score)}` } : null,
+  ].filter(Boolean) as { icon: "target" | "flag" | "trend" | "spark"; label: string; text: string }[];
   const challenges = Object.fromEntries(conv.challenges.map((c) => [c.id, toChallengeView(c, conv.skill)]));
   const chat = (
     <CoachChat
@@ -59,6 +75,23 @@ export default async function CoachPage({ params }: { params: Promise<{ id: stri
         </div>
       }
     >
+      {understood.length > 0 && (
+        <details className="glass group rounded-[22px]" open={understood.length >= 3 ? undefined : true}>
+          <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-xs font-semibold text-muted [&::-webkit-details-marker]:hidden">
+            <Icon name="spark" className="h-4 w-4 text-accent" />
+            What {teacher.name} understands
+            <Icon name="chevron" className="ml-auto h-4 w-4 transition group-open:rotate-90" />
+          </summary>
+          <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-3">
+            {understood.map((u) => (
+              <div key={u.label} className="min-w-[9.5rem] max-w-[13rem] shrink-0 rounded-2xl bg-card-2/60 px-3 py-2">
+                <p className="flex items-center gap-1 text-[11px] text-muted"><Icon name={u.icon} className="h-3 w-3" />{u.label}</p>
+                <p className="mt-0.5 line-clamp-2 text-[13px] font-medium leading-snug">{u.text}</p>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
       {conv.phase === "feedback" ? <AutoRefresh>{chat}</AutoRefresh> : chat}
     </AppShell>
   );

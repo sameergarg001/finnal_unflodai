@@ -16,6 +16,8 @@ export function toChallengeView(c: Challenge, skill: Skill): ChallengeView {
     expectedOutcome: c.expectedOutcome,
     example: c.example,
     feedbackInstructions: c.feedbackInstructions,
+    whyThisChallenge: c.whyThisChallenge,
+    alternative: c.alternative,
     difficulty: c.difficulty,
     estimatedMinutes: c.estimatedMinutes,
     subskillLabel: fw.subskills.find((s) => s.key === c.subskill)?.label ?? null,

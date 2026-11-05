@@ -33,7 +33,7 @@ export function TabBar({ taskCount = 0 }: { taskCount?: number }) {
                 </svg>
                 {active && <span>{t.label}</span>}
                 {t.href === "/tasks" && taskCount > 0 && (
-                  <span className={`${active ? "static ring-0" : "absolute right-[18%] top-1.5 ring-2"} flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-sun px-1 text-[10px] font-bold text-[#3a2a00] ring-card-solid`} aria-label={`${taskCount} waiting`}>
+                  <span className={`${active ? "static ring-0" : "absolute right-[18%] top-1.5 ring-2"} flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-sun px-1 text-[10px] font-bold text-on-sun ring-card-solid`} aria-label={`${taskCount} waiting`}>
                     {taskCount}
                   </span>
                 )}

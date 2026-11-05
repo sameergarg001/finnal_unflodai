@@ -3,54 +3,74 @@
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 /*
- * UnfoldAI design tokens.
- * Light "mist" (default): sage-tinted air, frosted cards, pine for action, sun for progress.
- * Dark "forest": the same family at night.
+ * UnfoldAI design tokens: taken from the folded-"u" logo.
+ * Brand: violet strip (#6B3FE0), warm yellow fold (#FFB020), deep navy ink (#161A3D).
+ * Light "paper" (default): lavender-white air, frosted cards, violet for action, yellow for progress.
+ * Dark "night": deep navy with a lifted violet so it keeps contrast.
+ * Brand constants (--brand-*) never change with the theme; --logo-* picks the right variant per theme.
  */
+:root {
+  --brand-violet: #6b3fe0;
+  --brand-violet-light: #a98bff;
+  --brand-yellow: #ffb020;
+  --brand-yellow-light: #ffc043;
+  --brand-navy: #161a3d;
+  --brand-mist: #eeedfb;
+}
 :root,
 [data-theme="light"] {
-  --bg: #e4ece7;
-  --bg-glow-1: #f4f8f5;
-  --bg-glow-2: #cfe0d6;
-  --surface: rgba(255, 255, 255, 0.62);
-  --card: rgba(255, 255, 255, 0.7);
-  --card-solid: #f7faf8;
-  --card-2: #dbe6df;
-  --fg: #10201a;
-  --muted: #5b6d65;
-  --line: rgba(16, 32, 26, 0.08);
-  --accent: #2c6a54;
-  --accent-strong: #1d5240;
-  --accent-soft: #cfe5da;
+  --bg: #f3f1fa;
+  --bg-glow-1: #fbfaff;
+  --bg-glow-2: #e4dcfb;
+  --surface: rgba(255, 255, 255, 0.64);
+  --card: rgba(255, 255, 255, 0.74);
+  --card-solid: #fbfaff;
+  --card-2: #e8e4f5;
+  --fg: var(--brand-navy);
+  --muted: #5f6385;
+  --line: rgba(22, 26, 61, 0.08);
+  --accent: var(--brand-violet);
+  --accent-strong: #5630c2;
+  --accent-soft: #e8e0fd;
   --on-accent: #ffffff;
-  --sun: #f2c14e;
-  --sun-ink: #8a5a00;
-  --sun-soft: #fbedc5;
-  --series-evidence: #2c6a54;
-  --series-self: #d99a1e;
-  --shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset, 0 10px 30px -18px rgba(22, 60, 45, 0.35);
+  --sun: var(--brand-yellow);
+  --sun-ink: #8f5200;
+  --sun-soft: #ffedc8;
+  --on-sun: #3b2300;
+  --series-evidence: var(--brand-violet);
+  --series-self: #e8930c;
+  --logo-strip: var(--brand-violet);
+  --logo-fold: var(--brand-yellow);
+  --logo-word: var(--brand-navy);
+  --logo-tile: var(--brand-violet);
+  --shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset, 0 10px 30px -18px rgba(40, 24, 110, 0.32);
   color-scheme: light;
 }
 [data-theme="dark"] {
-  --bg: #0d1613;
-  --bg-glow-1: #15241e;
-  --bg-glow-2: #0f1d18;
-  --surface: rgba(23, 36, 31, 0.72);
-  --card: rgba(28, 43, 37, 0.78);
-  --card-solid: #18261f;
-  --card-2: #23362e;
-  --fg: #e9f2ed;
-  --muted: #8ea39a;
-  --line: rgba(233, 242, 237, 0.08);
-  --accent: #74c7a3;
-  --accent-strong: #56b08a;
-  --accent-soft: rgba(116, 199, 163, 0.16);
-  --on-accent: #0b1a14;
-  --sun: #f2c94c;
-  --sun-ink: #f2c94c;
-  --sun-soft: rgba(242, 201, 76, 0.14);
-  --series-evidence: #74c7a3;
-  --series-self: #f2c94c;
+  --bg: #0f1129;
+  --bg-glow-1: #1b1a45;
+  --bg-glow-2: #15123a;
+  --surface: rgba(27, 29, 66, 0.72);
+  --card: rgba(31, 33, 74, 0.78);
+  --card-solid: #1b1d45;
+  --card-2: #282b5e;
+  --fg: var(--brand-mist);
+  --muted: #9a9cc4;
+  --line: rgba(238, 237, 251, 0.08);
+  --accent: var(--brand-violet-light);
+  --accent-strong: #9472ff;
+  --accent-soft: rgba(169, 139, 255, 0.16);
+  --on-accent: #160f3a;
+  --sun: var(--brand-yellow-light);
+  --sun-ink: var(--brand-yellow-light);
+  --sun-soft: rgba(255, 192, 67, 0.14);
+  --on-sun: #3b2300;
+  --series-evidence: var(--brand-violet-light);
+  --series-self: var(--brand-yellow-light);
+  --logo-strip: var(--brand-violet-light);
+  --logo-fold: var(--brand-yellow-light);
+  --logo-word: var(--brand-mist);
+  --logo-tile: var(--brand-violet);
   --shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 12px 30px -18px rgba(0, 0, 0, 0.7);
   color-scheme: dark;
 }
@@ -74,6 +94,10 @@
   --color-sun: var(--sun);
   --color-sun-ink: var(--sun-ink);
   --color-sun-soft: var(--sun-soft);
+  --color-on-sun: var(--on-sun);
+  --color-brand-violet: var(--brand-violet);
+  --color-brand-yellow: var(--brand-yellow);
+  --color-brand-navy: var(--brand-navy);
   --color-success: #2f9e62;
   --color-warn: #d98a1e;
   --color-danger: #e0484f;
@@ -136,6 +160,21 @@ h1, h2, h3, .font-display {
 }
 .wait-pulse { animation: wait-pulse 1.6s ease-in-out infinite; }
 
+/* Brand loader: the yellow fold flips up and settles back, like a page being unfolded. */
+@keyframes logo-fold {
+  0%, 100% { transform: scaleY(1); }
+  45% { transform: scaleY(-1); }
+  60% { transform: scaleY(-1); }
+}
+/* Hide the loading screen for quick navigations; it only fades in if loading takes a while. */
+@keyframes loading-in { from { opacity: 0; } to { opacity: 1; } }
+.loading-delay { animation: loading-in 0.25s ease-out 0.3s both; }
+.logo-fold {
+  transform-box: fill-box;
+  transform-origin: 50% 0%;
+  animation: logo-fold 1.4s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -163,7 +202,7 @@ input[type="range"].slider::-webkit-slider-thumb {
   border-radius: 999px;
   background: #fff;
   border: 4px solid var(--accent);
-  box-shadow: 0 4px 12px rgba(16, 32, 26, 0.25);
+  box-shadow: 0 4px 12px rgba(22, 26, 61, 0.25);
 }
 input[type="range"].slider::-moz-range-thumb {
   width: 22px;

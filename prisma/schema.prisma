@@ -37,6 +37,7 @@ model User {
   dailyBriefs  DailyBrief[]
   weeklyReviews WeeklyReview[]
   mentorMessages MentorMessage[]
+  situations    UserSituation[]
   conversations Conversation[]
   customSkills  Skill[]
   reports       Report[]
@@ -147,6 +148,7 @@ model SkillScore {
   confidence Float    @default(0.2) // 0–1, grows with evidence
   difficulty Int      @default(2)   // 1–5, adaptive challenge difficulty
   startingLevel Int?              // 1–5, level the user chose for themselves at setup
+  baselineScore Float?            // first self-assessment; never overwritten
   updatedAt  DateTime @updatedAt
 
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -166,13 +168,45 @@ model SkillScoreEvent {
   source    String   // "assessment" (self-rating) | "challenge" (evidence)
   sourceId  String?
   reason    String?
-  evidence  Json?    // { completionStatus, evidence[], signal, strength, difficulty, rule }
+  evidence  Json?    // { completionStatus, evidence[], dimensions, performance, tier, strength, difficulty, rule }
+  subskill  String   @default("") // "" = whole skill; otherwise a subskill key
+  confidence Float?  // 0–1 confidence of the evaluation behind this change
   createdAt DateTime @default(now())
 
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   skill Skill @relation(fields: [skillId], references: [id])
 
   @@index([userId, skillId, createdAt])
+  @@unique([source, sourceId, skillId, subskill]) // one change per evaluation → no double awards
+}
+
+/// Evidence-based score per subskill. Starts unassessed (evidenceCount 0) at the skill's baseline.
+model SubskillScore {
+  userId        String
+  skillId       String
+  subskill      String   // subskill key from the skill framework
+  score         Float
+  baseline      Float
+  evidenceCount Int      @default(0)
+  confidence    Float    @default(0.2)
+  updatedAt     DateTime @updatedAt
+
+  @@id([userId, skillId, subskill])
+}
+
+/// A real-world situation the user described (only what they chose to share).
+model UserSituation {
+  id             String   @id @default(cuid())
+  userId         String
+  skillId        String?
+  conversationId String?
+  summary        String
+  details        Json     // { location, activity, people, opportunities[], constraints[], immediateGoal, difficulty, possibleActions[] }
+  createdAt      DateTime @default(now())
+  lastSeenAt     DateTime @default(now())
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, lastSeenAt])
 }
 
 // ─── Challenges ───────────────────────────────────────────────────────────
@@ -204,6 +238,9 @@ model Challenge {
   dueAt             DateTime?
   completedAt       DateTime?
   generationContext Json?     // inputs given to the AI, for audits
+  feedbackQuestions Json?     // string[] questions tailored to this challenge
+  alternative       String?   // a backup version if the situation isn't available
+  targetInsightId   String?   // the weakness this challenge targets
   modelVersion      String?   // e.g. "gemini:gemini-2.5-flash" or "fallback"
 
   user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -245,6 +282,11 @@ model AiAnalysis {
   nextFocus                String?  // what the next step should target
   insights                 Json     // { items: [{ kind, text }], feedback }
   report                   Json?    // { wentWell[], toImprove[], nextFocus, nextSubskill, overcamePrevious }
+  dimensions               Json?    // evaluation rubric (0–1 or null each)
+  performance              Float?   // 0–1 weighted performance computed by the backend
+  tier                     String?  // "excellent" | "good" | "partial" | "none" | "regression"
+  reviewNote               String?  // the user's note when they asked for a re-evaluation
+  reviewedAt               DateTime?
   modelVersion             String
   createdAt                DateTime @default(now())
 
@@ -261,6 +303,12 @@ model UserInsight {
   kind       String   // "strength" | "blocker" | "pattern" | "preference"
   text       String
   strength   Float    @default(0.5) // 0–1, decays over time, reinforced on repeat
+  subskill   String?  // subskill key, if the observation is about one
+  evidence   Json?    // [{ quote, source: "message"|"feedback"|"analysis", refId, at, direction: "supports"|"contradicts" }]
+  situations Json?    // string[] where it shows up
+  count      Int      @default(1) // supporting observations
+  status     String   @default("hypothesis") // "hypothesis"|"confirmed"|"improving"|"resolved"|"temporary"|"outdated"|"rejected"
+  confidence Float    @default(0.3)
   createdAt  DateTime @default(now())
   lastSeenAt DateTime @default(now())
 

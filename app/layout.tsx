@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   description: "Build the skills that move your life forward.",
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, title: "UnfoldAI", statusBarStyle: "default" },
-  icons: { icon: "/icon-192.png" },
+  // Favicon and Apple icon come from app/icon.svg and app/apple-icon.png (file conventions).
 };
 
 export const viewport: Viewport = {
@@ -21,8 +21,8 @@ export const viewport: Viewport = {
   maximumScale: 1,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#e4ece7" },
-    { media: "(prefers-color-scheme: dark)", color: "#0d1613" },
+    { media: "(prefers-color-scheme: light)", color: "#f3f1fa" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f1129" },
   ],
 };
 

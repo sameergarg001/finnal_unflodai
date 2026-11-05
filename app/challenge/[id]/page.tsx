@@ -11,8 +11,8 @@ import { AutoRefresh } from "@/components/AutoRefresh";
 import { ChallengeBody } from "@/components/ChallengeCard";
 import { FeedbackFlow } from "@/components/FeedbackFlow";
 import { SubmitButton } from "@/components/SubmitButton";
-import { ButtonLink, Card, Icon, Notice, Pill, ScoreRing, Skeleton } from "@/components/ui";
-import { abandonChallengeAction, nextChallengeAction } from "../../actions";
+import { ButtonLink, Card, Icon, Notice, Pill, ProgressBar, ScoreRing, Skeleton, input } from "@/components/ui";
+import { abandonChallengeAction, nextChallengeAction, requestReviewAction } from "../../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -30,10 +30,16 @@ export default async function ChallengePage({ params, searchParams }: { params: 
   const analysis = ch.reflection?.analysis;
   const report = analysis?.report as AnalysisReport | null | undefined;
   const feedback = ((analysis?.insights ?? {}) as { feedback?: string }).feedback;
-  const [event, next] = await Promise.all([
-    analysis ? db.skillScoreEvent.findFirst({ where: { userId: user.id, source: "challenge", sourceId: ch.id } }) : null,
+  const [events, next] = await Promise.all([
+    analysis ? db.skillScoreEvent.findMany({ where: { userId: user.id, sourceId: ch.id, source: { in: ["challenge", "review"] } }, orderBy: { createdAt: "asc" } }) : [],
     ch.status === "done" ? db.challenge.findFirst({ where: { userId: user.id, skillId: ch.skillId, assignedAt: { gt: ch.assignedAt }, status: { in: ["active", "proposed", "done"] } }, orderBy: { assignedAt: "asc" } }) : null,
   ]);
+  const event = events.find((e) => e.source === "challenge" && e.subskill === "") ?? null;
+  const review = events.find((e) => e.source === "review") ?? null;
+  const subEvents = events.filter((e) => e.source === "challenge" && e.subskill !== "");
+  const fw = frameworkOf(ch.skill);
+  const dims = (analysis?.dimensions ?? null) as Record<string, number | null> | null;
+  const questions = asStrings(ch.feedbackQuestions).length >= 2 ? asStrings(ch.feedbackQuestions) : fw.feedbackQuestions;
   const responses = (Array.isArray(ch.reflection?.responses) ? ch.reflection!.responses : []) as { question: string; answer: string }[];
   const waitingSince = ch.acceptedAt ?? ch.assignedAt;
 
@@ -42,7 +48,7 @@ export default async function ChallengePage({ params, searchParams }: { params: 
       {ch.status === "active" && (
         <>
           <div className="flex items-center gap-3.5 rounded-[28px] bg-sun-soft p-4 shadow-soft">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-sun text-[#3a2a00]"><Icon name="clock" /></span>
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-sun text-on-sun"><Icon name="clock" /></span>
             <div className="min-w-0">
               <p className="font-display text-lg font-bold leading-tight">Your task is waiting for you</p>
               <p className="text-sm text-muted">Since {waitingSince.toLocaleDateString(undefined, { day: "numeric", month: "short" })} · saved</p>
@@ -52,7 +58,7 @@ export default async function ChallengePage({ params, searchParams }: { params: 
 
           {sp.feedback ? (
             <Card>
-              <FeedbackFlow challengeId={ch.id} questions={frameworkOf(ch.skill).feedbackQuestions} />
+              <FeedbackFlow challengeId={ch.id} questions={questions} />
             </Card>
           ) : (
             <>
@@ -89,14 +95,15 @@ export default async function ChallengePage({ params, searchParams }: { params: 
             <>
               {event && (
                 <Card className="flex items-center gap-5">
-                  <ScoreRing value={event.newScore} size={96} stroke={10} caption="UnfoldAI" />
+                  <ScoreRing value={review?.newScore ?? event.newScore} size={96} stroke={10} caption="UnfoldAI" />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm text-muted">Progress</p>
                     <p className="font-display text-2xl font-bold tabular-nums">
                       {Math.round((event.previousScore ?? event.newScore) * 10) / 10} → {event.newScore}
                     </p>
                     {event.delta !== 0 && <Pill tone={event.delta > 0 ? "success" : "warn"}>{event.delta > 0 ? "+" : ""}{event.delta}</Pill>}
-                    <p className="mt-1.5 line-clamp-3 text-xs text-muted">{event.reason}</p>
+                    <p className="mt-1.5 text-xs leading-relaxed text-muted">{event.reason}</p>
+                    {review && <p className="mt-1.5 text-xs font-medium text-accent">{review.reason}{review.delta !== 0 ? ` Now ${review.newScore}.` : ""}</p>}
                   </div>
                 </Card>
               )}
@@ -118,8 +125,49 @@ export default async function ChallengePage({ params, searchParams }: { params: 
                     </div>
                   </div>
                 )}
-                {analysis.modelVersion === "heuristic" && <p className="text-xs text-muted">Basic analysis — the AI coach was unavailable when you sent this.</p>}
+                {analysis.modelVersion === "unevaluated" && <p className="text-xs text-muted">Not evaluated — the AI was unavailable for too long, so no score changed.</p>}
               </Card>
+
+              {analysis.modelVersion !== "unevaluated" && analysis.modelVersion !== "heuristic" && (
+                <More label="How this was evaluated">
+                  <div className="space-y-4">
+                    {dims && (
+                      <div className="space-y-2.5">
+                        {DIMENSIONS.map(([key, label]) => (
+                          <div key={key}>
+                            <div className="mb-1 flex justify-between text-xs"><span>{label}</span><span className="tabular-nums text-muted">{dims[key] == null ? "—" : Math.round(dims[key]! * 100)}</span></div>
+                            {dims[key] != null && <ProgressBar value={dims[key]! * 100} label={label} />}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <p className="text-xs text-muted">
+                      Evidence detail {Math.round(analysis.evidenceStrength * 100)}/100 · result: {analysis.tier ?? "—"} · scores only move on specific evidence of what you did.
+                    </p>
+                    {subEvents.length > 0 && (
+                      <div className="space-y-1.5">
+                        <p className="text-xs font-semibold">Subskills</p>
+                        {subEvents.map((e) => (
+                          <p key={e.id} className="flex justify-between text-sm">
+                            <span>{fw.subskills.find((x) => x.key === e.subskill)?.label ?? e.subskill}</span>
+                            <span className="tabular-nums text-muted">{Math.round((e.previousScore ?? e.newScore) * 10) / 10} → {e.newScore}</span>
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                    {!analysis.reviewedAt && event ? (
+                      <ActionForm action={requestReviewAction} className="space-y-2 border-t border-line pt-4" resetOnSuccess>
+                        <input type="hidden" name="challengeId" value={ch.id} />
+                        <p className="text-sm font-semibold">Something missed?</p>
+                        <textarea name="note" rows={2} required minLength={10} maxLength={1000} placeholder="What did the evaluation miss about what you did?" className={`${input} resize-none`} />
+                        <SubmitButton variant="secondary" pendingText="Reviewing…">Ask for a review</SubmitButton>
+                      </ActionForm>
+                    ) : analysis.reviewedAt ? (
+                      <p className="border-t border-line pt-3 text-xs text-muted">Reviewed at your request{analysis.reviewNote ? `: “${analysis.reviewNote}”` : ""}.</p>
+                    ) : null}
+                  </div>
+                </More>
+              )}
 
               {next ? (
                 <ButtonLink href={next.status === "proposed" && next.conversationId ? `/coach/${next.conversationId}` : `/challenge/${next.id}`}>Go to your next task</ButtonLink>
@@ -162,6 +210,16 @@ export default async function ChallengePage({ params, searchParams }: { params: 
     </AppShell>
   );
 }
+
+const DIMENSIONS: [string, string][] = [
+  ["skillShown", "Skill shown"],
+  ["execution", "How well you did it"],
+  ["completion", "Did the task"],
+  ["discomfort", "Acted despite discomfort"],
+  ["situationDifficulty", "How hard the situation was"],
+  ["improvement", "Better than before"],
+  ["reflection", "Reflection"],
+];
 
 function List({ title, items, good }: { title: string; items: string[]; good?: boolean }) {
   if (!items.length) return null;

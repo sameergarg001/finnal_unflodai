@@ -5,21 +5,23 @@ import { SERIES, ScoreRing } from "./ui";
 /** Home hero: overall score ring + one bar per skill (pine = UnfoldAI, sun = self-rated). */
 export function GrowthCard({ cards }: { cards: SkillCardData[] }) {
   const o = overallFrom(cards);
-  const verified = o.evidenceAverage != null;
-  const overall = verified ? o.evidenceAverage : o.selfAverage;
-  const gain = verified && o.evidenceBaseline != null ? Math.round((o.evidenceAverage! - o.evidenceBaseline) * 10) / 10 : null;
+  const overall = o.overall.current;
+  const verified = o.assessedSkills > 0;
+  const gain = o.overall.change;
   const shown = cards.slice(0, 8);
 
   return (
     <Link href="/reports" className="glass block rounded-[32px] p-5 transition active:scale-[0.99]" aria-label="Your growth — open reports">
       <div className="flex items-center gap-5">
-        <ScoreRing value={overall} size={112} stroke={11} caption={verified ? "UnfoldAI" : "self-rated"} color={verified ? "var(--accent)" : "var(--series-self)"} />
+        <ScoreRing value={overall} size={112} stroke={11} caption="overall" color={verified ? "var(--accent)" : "var(--series-self)"} />
         <div className="min-w-0 flex-1">
           <h2 className="text-[22px] font-bold leading-tight">Your growth</h2>
           <div className="mt-3 flex gap-5">
-            <Stat value={o.completed} label="tasks done" />
-            {gain != null && gain !== 0 ? <Stat value={`${gain > 0 ? "+" : ""}${gain}`} label="since start" tone={gain > 0 ? "text-success" : undefined} /> : <Stat value={cards.length} label="skills" />}
+            <Stat value={o.overall.initial == null ? "—" : Math.round(o.overall.initial)} label="at start" />
+            <Stat value={gain == null ? "—" : `${gain > 0 ? "+" : ""}${gain}`} label="change" tone={gain != null && gain > 0 ? "text-success" : undefined} />
+            <Stat value={o.completed} label="tasks" />
           </div>
+          <p className="mt-2.5 text-[11px] text-muted">{verified ? `${o.assessedSkills} of ${o.overall.skillsCounted} verified by tasks` : "Self-rated · tasks will verify it"}</p>
         </div>
       </div>
 

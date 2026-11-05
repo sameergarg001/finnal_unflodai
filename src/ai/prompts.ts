@@ -7,7 +7,7 @@ import { z } from "zod";
 
 /** Neutralise tag-like text so user input can't break out of its data block. */
 export function userData(label: string, value: unknown): string {
-  const text = typeof value === "string" ? value : JSON.stringify(value, null, 2);
+  const text = typeof value === "string" ? value : JSON.stringify(value); // compact: saves tokens
   return `<${label}>\n${text.replace(/</g, "‹").replace(/>/g, "›")}\n</${label}>`;
 }
 

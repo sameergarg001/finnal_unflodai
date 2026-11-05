@@ -100,7 +100,7 @@ async function activate(userId: string, skillId: string, selfScore?: number | nu
   }
   const base = selfScore ?? ADDED_BASELINE;
   await db.skillScore.create({
-    data: { userId, skillId, score: base, selfScore: selfScore ?? null, confidence: 0.1, difficulty: initialDifficulty(base) },
+    data: { userId, skillId, score: base, selfScore: selfScore ?? null, baselineScore: selfScore ?? null, confidence: 0.1, difficulty: initialDifficulty(base) },
   });
   await db.skillScoreEvent.create({
     data: {
@@ -178,8 +178,12 @@ export async function setSelfScore(userId: string, skillId: string, selfScore: n
   await db.$transaction([
     db.skillScore.upsert({
       where: { userId_skillId: { userId, skillId } },
-      create: { userId, skillId, score, selfScore: value, confidence: 0.2, difficulty: initialDifficulty(value) },
-      update: useAsBaseline ? { score, selfScore: value, difficulty: initialDifficulty(value) } : { selfScore: value },
+      create: { userId, skillId, score, selfScore: value, baselineScore: value, confidence: 0.2, difficulty: initialDifficulty(value) },
+      // The first self-assessment becomes the permanent baseline; later ones never overwrite it.
+      update: {
+        ...(useAsBaseline ? { score, selfScore: value, difficulty: initialDifficulty(value) } : { selfScore: value }),
+        ...(sc?.baselineScore == null ? { baselineScore: value } : {}),
+      },
     }),
     db.skillScoreEvent.create({
       data: {

@@ -6,7 +6,8 @@ import { useFormStatus } from "react-dom";
 import { challengeActionAction, coachMessageAction } from "../../app/actions";
 import { ChallengeBody, type ChallengeView } from "./ChallengeCard";
 import { Spinner } from "./SubmitButton";
-import { Icon, Notice, input } from "./ui";
+import { Icon, LogoLoader, Notice, input } from "./ui";
+import { MicButton, SpeakButton, VoiceRepliesToggle, useVoiceReplies } from "./Voice";
 
 export interface Msg {
   id: string;
@@ -16,23 +17,43 @@ export interface Msg {
   challengeId: string | null;
 }
 
-function Bubble({ role, children }: { role: string; children: React.ReactNode }) {
+function Bubble({ role, children, speak }: { role: string; children: React.ReactNode; speak?: { id: string; text: string } }) {
   const mine = role === "user";
   return (
-    <div className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+    <div className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
       <div className={`max-w-[84%] whitespace-pre-line px-4 py-3 text-[15px] leading-relaxed ${mine ? "rounded-[22px] rounded-br-md bg-accent text-on-accent" : "glass rounded-[22px] rounded-bl-md"}`}>
         {children}
       </div>
+      {speak && !mine && <div className="mt-0.5 pl-1"><SpeakButton id={speak.id} text={speak.text} /></div>}
     </div>
   );
+}
+
+/** Puts spoken words into the message box live, keeping anything already typed. */
+function useVoiceInto(box: React.RefObject<HTMLTextAreaElement | null>) {
+  const base = useRef<string | null>(null);
+  const put = (t: string) => {
+    const el = box.current;
+    if (!el) return;
+    if (base.current === null) base.current = el.value.trim();
+    el.value = [base.current, t].filter(Boolean).join(" ");
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  };
+  return {
+    onLive: put,
+    onText: (t: string) => {
+      put(t);
+      base.current = null;
+      box.current?.focus();
+    },
+  };
 }
 
 function Thinking() {
   return (
     <div className="flex justify-start">
-      <div className="glass flex items-center gap-1.5 rounded-[22px] rounded-bl-md px-4 py-4" aria-label="Coach is thinking">
-        {[0, 1, 2].map((i) => <span key={i} className="h-2 w-2 animate-bounce rounded-full bg-muted" style={{ animationDelay: `${i * 0.15}s` }} />)}
-      </div>
+      <div className="glass flex items-center gap-2.5 rounded-[22px] rounded-bl-md py-2.5 pl-3 pr-4 text-sm text-muted"><LogoLoader size={26} label="Coach is thinking" /><span aria-hidden>Thinking…</span></div>
     </div>
   );
 }
@@ -98,11 +119,7 @@ function ChallengeMessage({ c, current, onTell }: { c: ChallengeView; current: b
   );
 }
 
-const QUICK: Record<string, string[]> = {
-  understanding: ["Just give me a task"],
-  active: ["I'm stuck — how do I start?", "What should I say first?"],
-  reviewed: ["Give me my next task", "I want to work on something else"],
-};
+// Quick replies come from the mentor (generated for this moment) — no fixed chips.
 
 export function CoachChat({
   conversationId,
@@ -122,10 +139,15 @@ export function CoachChat({
   /** Server-provided quick replies (override the per-phase defaults). */
   quick?: string[] | null;
 }) {
-  const chips = quick ?? QUICK[phase] ?? [];
+  const chips = quick ?? [];
   const [state, action] = useActionState(coachMessageAction, undefined);
   const formRef = useRef<HTMLFormElement>(null);
   const boxRef = useRef<HTMLTextAreaElement>(null);
+  const lastMsg = [...messages].reverse().find((m) => m.kind === "text" || m.kind === "report");
+  const replies = useVoiceReplies(lastMsg ? { id: lastMsg.id, text: lastMsg.content, fromMentor: lastMsg.role !== "user" } : null);
+  const mic = useVoiceInto(boxRef);
+  // Speaking a message means the mentor answers out loud too.
+  const voice = { onLive: mic.onLive, onText: (t: string) => { mic.onText(t); replies.markSpoken(); } };
   const endRef = useRef<HTMLDivElement>(null);
   const currentChallengeId = [...messages].reverse().find((m) => m.kind === "challenge")?.challengeId;
 
@@ -154,14 +176,14 @@ export function CoachChat({
           }
           if (m.kind === "report") {
             return (
-              <Bubble key={m.id} role="coach">
+              <Bubble key={m.id} role="coach" speak={{ id: m.id, text: m.content }}>
                 <span className="mb-1 flex items-center gap-1.5 text-sm font-semibold text-accent"><Icon name="trend" className="h-4 w-4" />Analysis</span>
                 {m.content}
                 {m.challengeId && <Link href={`/challenge/${m.challengeId}`} className="mt-2 block text-sm font-semibold text-accent">See full report</Link>}
               </Bubble>
             );
           }
-          return <Bubble key={m.id} role={m.role}>{m.content}</Bubble>;
+          return <Bubble key={m.id} role={m.role} speak={m.role === "user" ? undefined : { id: m.id, text: m.content }}>{m.content}</Bubble>;
         })}
         {phase === "feedback" && <Thinking />}
         <div ref={endRef} />
@@ -171,6 +193,7 @@ export function CoachChat({
         <div className="space-y-3 pb-2"><PendingMessage /></div>
         <input type="hidden" name="conversationId" value={conversationId} />
         {state?.error && <Notice tone="error">{state.error}</Notice>}
+        <div className="flex justify-end"><VoiceRepliesToggle on={replies.on} toggle={replies.toggle} /></div>
         {(chips.length > 0 || (phase === "active" && activeChallengeId)) && (
           <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
             {phase === "active" && activeChallengeId && (
@@ -215,6 +238,7 @@ export function CoachChat({
               t.style.height = `${t.scrollHeight}px`;
             }}
           />
+          <MicButton {...voice} />
           <SendButton />
         </div>
       </form>

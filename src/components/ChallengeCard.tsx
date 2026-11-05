@@ -10,6 +10,8 @@ export interface ChallengeView {
   expectedOutcome: string | null;
   example: string | null;
   feedbackInstructions: string | null;
+  whyThisChallenge: string | null;
+  alternative: string | null;
   difficulty: number;
   estimatedMinutes: number;
   subskillLabel: string | null;
@@ -27,6 +29,12 @@ export function ChallengeBody({ c, compact }: { c: ChallengeView; compact?: bool
         {c.subskillLabel && <Chip>{c.subskillLabel}</Chip>}
       </div>
       <h3 className="text-[22px] font-bold leading-tight">{c.title}</h3>
+      {c.whyThisChallenge && (
+        <p className="rounded-2xl bg-accent-soft px-4 py-3 text-sm leading-relaxed">
+          <span className="font-semibold text-accent">Why this task · </span>
+          {c.whyThisChallenge}
+        </p>
+      )}
       {(c.objective || c.struggle) && (
         <div className="space-y-2">
           {c.objective && <Row icon="target">{c.objective}</Row>}
@@ -50,6 +58,7 @@ export function ChallengeBody({ c, compact }: { c: ChallengeView; compact?: bool
           <p className="mt-1 text-[15px] italic leading-relaxed">“{c.example}”</p>
         </div>
       )}
+      {c.alternative && <Row icon="refresh" label="If that situation isn't available">{c.alternative}</Row>}
       {!compact && c.expectedOutcome && <Row icon="check" label="Done when">{c.expectedOutcome}</Row>}
       {!compact && c.feedbackInstructions && <Row icon="chat" label="Then tell your coach">{c.feedbackInstructions}</Row>}
     </div>

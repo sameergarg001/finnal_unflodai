@@ -54,23 +54,16 @@ export function Avatar({ name, image, size = 44 }: { name: string; image?: strin
     return <img src={image} alt="" width={size} height={size} referrerPolicy="no-referrer" className="rounded-full object-cover ring-2 ring-white/70" style={{ width: size, height: size }} />;
   }
   return (
-    <div className="flex items-center justify-center rounded-full bg-sun font-display font-bold text-[#3a2a00]" style={{ width: size, height: size, fontSize: size * 0.42 }}>
+    <div className="flex items-center justify-center rounded-full bg-sun font-display font-bold text-on-sun" style={{ width: size, height: size, fontSize: size * 0.42 }}>
       {(name.trim()[0] ?? "U").toUpperCase()}
     </div>
   );
 }
 
-/** Brand mark: a pine squircle with an unfolding "U" and a sun spark. */
-export function Logo({ size = 56 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 64 64" aria-label="UnfoldAI" role="img">
-      <rect width="64" height="64" rx="20" fill="var(--accent)" />
-      <path d="M20 19v14a12 12 0 0024 0V19" fill="none" stroke="var(--on-accent)" strokeWidth="6.5" strokeLinecap="round" />
-      <path d="M44 19v14a12 12 0 01-12 12" fill="none" stroke="var(--sun)" strokeWidth="6.5" strokeLinecap="round" />
-      <circle cx="48.5" cy="13" r="4" fill="var(--sun)" />
-    </svg>
-  );
-}
+/** Brand components live in ./Brand; re-exported so existing imports keep working. */
+export { AppIcon, LogoMark, LogoLoader, Logo as LogoFull } from "./Brand";
+/** Back-compat: `Logo` = the app icon at `size` px. */
+export { AppIcon as Logo } from "./Brand";
 
 /** Horizontal progress bar (0–100). */
 export function ProgressBar({ value, color = SERIES.evidence, label: aria, thick }: { value: number; color?: string; label?: string; thick?: boolean }) {
@@ -187,7 +180,7 @@ export function DifficultyDots({ value }: { value: number }) {
 export function TeacherAvatar({ emoji, size = 40 }: { emoji: string; size?: number }) {
   return (
     <span
-      className="flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-white/90 to-accent-soft shadow-[inset_0_-3px_8px_rgba(44,106,84,0.18),0_6px_14px_-8px_rgba(16,32,26,0.4)] dark:from-white/10"
+      className="flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-white/90 to-accent-soft shadow-[inset_0_-3px_8px_rgba(107,63,224,0.18),0_6px_14px_-8px_rgba(22,26,61,0.4)] dark:from-white/10"
       style={{ width: size, height: size, fontSize: size * 0.48 }}
       aria-hidden
     >

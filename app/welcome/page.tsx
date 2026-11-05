@@ -4,7 +4,7 @@ import { getCurrentUser, onboardingPath } from "@/server/auth/session";
 import { googleConfigured } from "@/server/auth/google";
 import { AuthScreen } from "@/components/AuthScreen";
 import { GoogleButton } from "@/components/GoogleButton";
-import { Logo, Notice, ScoreRing, TeacherAvatar, btnPrimary } from "@/components/ui";
+import { LogoFull, Notice, ScoreRing, TeacherAvatar, btnPrimary } from "@/components/ui";
 
 const ERRORS: Record<string, string> = {
   google_not_configured: "Google sign-in isn't set up on this server yet. Use email for now.",
@@ -48,7 +48,7 @@ function WelcomeHero() {
       <div className="absolute right-0 top-10 flex items-center gap-2 rounded-full bg-sun-soft py-2 pl-3 pr-4 text-sm font-semibold shadow-soft">
         <span className="h-2 w-2 rounded-full bg-sun" /> Today&apos;s task
       </div>
-      <div className="absolute bottom-0 left-1/2 flex -translate-x-1/2 items-center gap-2"><Logo size={30} /><span className="font-display text-lg font-bold">UnfoldAI</span></div>
+      <div className="absolute bottom-0 left-1/2 -translate-x-1/2"><LogoFull height={30} /></div>
     </div>
   );
 }

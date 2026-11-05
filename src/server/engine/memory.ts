@@ -51,7 +51,8 @@ export async function rememberInsights(userId: string, skillId: string, insights
 
 /** Top insights for prompting: skill-specific first, then general patterns. */
 export async function recallInsights(userId: string, skillId: string, limit = 6) {
-  const all = await db.userInsight.findMany({ where: { userId } });
+  // Rejected (by the user), outdated and resolved observations are never recalled.
+  const all = await db.userInsight.findMany({ where: { userId, status: { notIn: ["rejected", "outdated", "resolved"] } } });
   const now = new Date();
   return all
     .map((i) => ({

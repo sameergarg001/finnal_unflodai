@@ -3,6 +3,7 @@ import { generateStructured } from "@/ai/client";
 import { REVIEW_SYSTEM, reviewPrompt, reviewSchema, type ProgressReview } from "@/ai/prompts";
 import { localDateKey, safeTimeZone, weekStartKey, addDays } from "@/lib/time";
 import { recallInsights } from "../engine/memory";
+import { overallScore } from "../engine/scoring";
 import { frameworkOf, teacherOf } from "./skills";
 import type { AnalysisReport } from "./challenges";
 
@@ -17,6 +18,10 @@ export interface SkillCardData {
   /** UnfoldAI evidence-based score; null until at least one assessed challenge. */
   evidenceScore: number | null;
   baseline: number;
+  /** Score used for overall progress: UnfoldAI's if assessed, else the self-rating. */
+  current: number | null;
+  /** First self-assessment (never overwritten). */
+  initial: number | null;
   completed: number;
   attempted: number;
   trend: number[];
@@ -28,7 +33,7 @@ export async function getSkillCards(userId: string): Promise<SkillCardData[]> {
   const [mine, scores, events, counts, active] = await Promise.all([
     db.userSkill.findMany({ where: { userId, isActive: true }, include: { skill: true }, orderBy: { skill: { sortOrder: "asc" } } }),
     db.skillScore.findMany({ where: { userId } }),
-    db.skillScoreEvent.findMany({ where: { userId, source: "challenge" }, orderBy: { createdAt: "asc" }, select: { skillId: true, newScore: true, previousScore: true } }),
+    db.skillScoreEvent.findMany({ where: { userId, source: { in: ["challenge", "review"] }, subskill: "" }, orderBy: { createdAt: "asc" }, select: { skillId: true, newScore: true, previousScore: true } }),
     db.challenge.groupBy({ by: ["skillId", "status"], where: { userId, status: { in: ["done", "abandoned"] } }, _count: true }),
     db.challenge.findMany({ where: { userId, status: "active" }, select: { skillId: true } }),
   ]);
@@ -49,6 +54,10 @@ export async function getSkillCards(userId: string): Promise<SkillCardData[]> {
       selfScore: sc?.selfScore ?? null,
       evidenceScore: sc && sc.evidenceCount > 0 ? sc.score : null,
       baseline: ev[0]?.previousScore ?? sc?.score ?? 0,
+      // Overall progress only moves with task evidence: unassessed skills count at their baseline,
+      // so re-rating yourself never shows up as "progress".
+      current: sc ? (sc.evidenceCount > 0 ? sc.score : (sc.baselineScore ?? sc.selfScore ?? null)) : null,
+      initial: sc?.baselineScore ?? sc?.selfScore ?? null,
       completed: completedBySkill.get(skill.id) ?? 0,
       attempted,
       trend: ev.length ? [ev[0].previousScore ?? ev[0].newScore, ...ev.map((e) => e.newScore)] : [],
@@ -68,6 +77,8 @@ export function overallFrom(cards: SkillCardData[]) {
     evidenceAverage: avg(assessed.map((c) => c.evidenceScore!)),
     evidenceBaseline: avg(assessed.map((c) => c.baseline)),
     assessedSkills: assessed.length,
+    /** Transparent overall: mean of current skill scores vs. mean of the same skills' baselines. */
+    overall: overallScore(cards.map((c) => ({ current: c.current, baseline: c.initial }))),
     completed: cards.reduce((a, c) => a + c.completed, 0),
     attempted: cards.reduce((a, c) => a + c.attempted, 0),
   };
@@ -84,7 +95,7 @@ export async function getReports(user: { id: string; timezone: string }) {
       include: { skill: true, reflection: true },
       orderBy: { assignedAt: "asc" },
     }),
-    db.skillScoreEvent.findMany({ where: { userId, source: "challenge" }, include: { skill: true }, orderBy: { createdAt: "asc" } }),
+    db.skillScoreEvent.findMany({ where: { userId, source: { in: ["challenge", "review"] }, subskill: "" }, include: { skill: true }, orderBy: { createdAt: "asc" } }),
     recallInsights(userId, "", 20),
     db.aiAnalysis.findMany({
       where: { reflection: { challenge: { userId } } },
@@ -171,7 +182,7 @@ export async function getSkillHistory(userId: string, skillId: string) {
       include: { reflection: { include: { analysis: true } } },
       orderBy: { assignedAt: "desc" },
     }),
-    db.skillScoreEvent.findMany({ where: { userId, skillId }, orderBy: { createdAt: "desc" } }),
+    db.skillScoreEvent.findMany({ where: { userId, skillId, subskill: "" }, orderBy: { createdAt: "desc" } }),
     recallInsights(userId, skillId, 10),
   ]);
   return { challenges, events, weaknesses: insights.filter((i) => i.kind === "blocker" && (i.skillId === skillId || !i.skillId)) };

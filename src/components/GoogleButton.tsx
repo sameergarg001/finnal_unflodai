@@ -16,7 +16,7 @@ export function GoogleButton({ enabled }: { enabled: boolean }) {
         const tz = encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone);
         window.location.href = `/api/auth/google?tz=${tz}`;
       }}
-      className={`${btnSecondary} glass !bg-white !text-[#10201a]`}
+      className={`${btnSecondary} glass !bg-white !text-brand-navy`}
       aria-disabled={busy}
     >
       <svg viewBox="0 0 48 48" className="h-5 w-5" aria-hidden>

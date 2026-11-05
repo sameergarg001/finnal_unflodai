@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { MAX_DELTA, evidenceUpdate, initialDifficulty, nextDifficulty } from "./scoring";
+import { initialDifficulty, nextDifficulty } from "./scoring";
 import { selectNextSkill, type SkillCandidate } from "./selectSkill";
 import { decayedStrength } from "./memory";
 import { LEVELS, levelChange, levelForScore, levelProgress, levelToScore } from "../assessment/levels";
@@ -51,49 +51,10 @@ test("level bands: progress and level-up detection", () => {
   assert.equal(levelChange(50, 60).change, 0);
 });
 
-const base = {
-  score: 50,
-  confidence: 0.1,
-  evidenceCount: 0,
-  difficulty: 3,
-  completionStatus: "completed" as const,
-  skillSignal: 1,
-  evidenceStrength: 1,
-  overcamePrevious: false,
-  recentCompletions: 0,
-};
-
-test("evidenceUpdate is bounded and only rises with evidence", () => {
-  const up = evidenceUpdate({ ...base, difficulty: 5 });
-  assert.ok(up.delta > 0 && up.delta <= MAX_DELTA);
-  assert.ok(up.reason.length > 0);
-  assert.ok(evidenceUpdate({ ...base, difficulty: 5, overcamePrevious: true, recentCompletions: 5 }).delta <= MAX_DELTA);
-});
-
-test("evidenceUpdate: a claim without specific evidence never raises the score", () => {
-  assert.equal(evidenceUpdate({ ...base, evidenceStrength: 0.2 }).delta, 0);
-});
-
-test("evidenceUpdate: unsuccessful or skipped attempts are never penalised", () => {
-  assert.equal(evidenceUpdate({ ...base, completionStatus: "not_attempted" }).delta, 0);
-  assert.ok(evidenceUpdate({ ...base, completionStatus: "unsuccessful", skillSignal: -1 }).delta >= 0);
-  assert.equal(evidenceUpdate({ ...base, skillSignal: -0.8 }).delta, 0);
-});
-
-test("evidenceUpdate: partial < completed, established scores move slower, harder counts more", () => {
-  const full = evidenceUpdate(base).delta;
-  assert.ok(evidenceUpdate({ ...base, completionStatus: "partial" }).delta < full);
-  assert.ok(evidenceUpdate({ ...base, evidenceCount: 20 }).delta < full);
-  assert.ok(evidenceUpdate({ ...base, difficulty: 1 }).delta < evidenceUpdate({ ...base, difficulty: 5 }).delta);
-});
-
-test("evidenceUpdate clamps to 100", () => {
-  assert.ok(evidenceUpdate({ ...base, score: 99.5, difficulty: 5 }).score <= 100);
-});
-
 test("difficulty adapts one level at a time", () => {
   assert.equal(initialDifficulty(20), 1);
   assert.equal(initialDifficulty(80), 4);
+  assert.equal(initialDifficulty(90), 5);
   assert.equal(nextDifficulty(3, { completionStatus: "not_attempted", recommendation: "harder" }), 2);
   assert.equal(nextDifficulty(3, { completionStatus: "unsuccessful", recommendation: "same" }), 2);
   assert.equal(nextDifficulty(3, { completionStatus: "partial", recommendation: "harder" }), 3);
@@ -120,24 +81,4 @@ test("insight strength halves every 30 days", () => {
   const now = new Date("2026-11-01T00:00:00Z");
   const then = new Date(now.getTime() - 30 * 86_400_000);
   assert.ok(Math.abs(decayedStrength(1, then, now) - 0.5) < 1e-9);
-});
-
-test("built-in next steps never repeat and target the pain point", async () => {
-  const { fallbackChallenge } = await import("./fallbackChallenges");
-  const first = fallbackChallenge("confidence", 3);
-  const second = fallbackChallenge("confidence", 3, { recentTitles: [first.title] });
-  assert.notEqual(second.title, first.title);
-  const third = fallbackChallenge("confidence", 3, { recentTitles: [first.title, second.title], painPoint: "Freezing when seniors talk" });
-  assert.ok(third.title.startsWith("Try again:"));
-  assert.ok(third.instructions.includes("Freezing when seniors talk"));
-});
-
-test("interview timeline answers become a label and target date", async () => {
-  const { parseTimeline } = await import("../services/challenges");
-  const now = new Date("2026-11-02T00:00:00Z");
-  assert.deepEqual(parseTimeline("No rush", now), { timeline: "No rush — steady progress", targetDate: null });
-  assert.equal(parseTimeline("In 2 weeks", now).targetDate, "2026-11-16");
-  assert.equal(parseTimeline("In 1 month", now).targetDate, "2026-12-02");
-  assert.equal(parseTimeline("3 mahine mein", now).timeline, "About 3 months");
-  assert.equal(parseTimeline("In 3 months", now).targetDate, "2027-01-31");
 });

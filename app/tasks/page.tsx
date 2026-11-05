@@ -169,5 +169,5 @@ export default async function TasksPage() {
 }
 
 function Count({ n, sun }: { n: number; sun?: boolean }) {
-  return <span className={`flex h-7 min-w-7 items-center justify-center rounded-full px-2 text-sm font-bold ${sun ? "bg-sun text-[#3a2a00]" : "bg-card-2 text-muted"}`}>{n}</span>;
+  return <span className={`flex h-7 min-w-7 items-center justify-center rounded-full px-2 text-sm font-bold ${sun ? "bg-sun text-on-sun" : "bg-card-2 text-muted"}`}>{n}</span>;
 }

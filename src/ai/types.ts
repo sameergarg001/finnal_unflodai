@@ -4,6 +4,8 @@ export interface GenerateRequest {
   /** Ask the provider to return JSON only. */
   json?: boolean;
   temperature?: number;
+  /** How much the model thinks before answering (providers that support it). Default "low". */
+  reasoning?: "low" | "medium";
   /** Abort after this many ms (default 60s). Background tasks can allow longer. */
   timeoutMs?: number;
 }

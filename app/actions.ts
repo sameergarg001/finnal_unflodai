@@ -18,12 +18,14 @@ import {
   analyzeFeedback,
   challengeAction,
   nextChallenge,
+  requestReview,
   saveFeedback,
   sendCoachMessage,
   startCoachSession,
   type ChallengeAction,
 } from "@/server/services/challenges";
 import { MentorError, askMentor } from "@/server/services/mentor";
+import { deleteInsight, rejectInsight } from "@/server/intelligence/evidence";
 import { preferencesOf } from "@/server/services/notifications";
 
 export type FormState = { error?: string; ok?: string } | undefined;
@@ -190,6 +192,7 @@ export async function deleteAccountAction(_: FormState, form: FormData): Promise
     db.challenge.deleteMany({ where: { userId: user.id } }),
     db.conversation.deleteMany({ where: { userId: user.id } }),
     db.skillScoreEvent.deleteMany({ where: { userId: user.id } }),
+    db.subskillScore.deleteMany({ where: { userId: user.id } }),
     db.skillScore.deleteMany({ where: { userId: user.id } }),
     db.assessmentAnswer.deleteMany({ where: { assessment: { userId: user.id } } }),
     db.userInsight.deleteMany({ where: { userId: user.id } }),
@@ -367,6 +370,30 @@ export async function nextChallengeAction(_: FormState, form: FormData): Promise
     throw e;
   }
   redirect(`/coach/${res.conversationId}`);
+}
+
+/** The user disputes an evaluation: re-evaluated once with their note. */
+export async function requestReviewAction(_: FormState, form: FormData): Promise<FormState> {
+  const user = await requireUser();
+  const challengeId = String(form.get("challengeId") ?? "");
+  try {
+    const r = await requestReview(user.id, challengeId, String(form.get("note") ?? ""));
+    revalidatePath(`/challenge/${challengeId}`);
+    return { ok: r.correction === 0 ? "Reviewed — the evaluation stays the same." : `Reviewed — score ${r.correction > 0 ? "+" : ""}${r.correction}.` };
+  } catch (e) {
+    if (known(e)) return { error: (e as Error).message };
+    throw e;
+  }
+}
+
+/** User correction of what the mentor has noticed: "not true" (kept as rejected) or delete entirely. */
+export async function correctInsightAction(form: FormData) {
+  const user = await requireUser();
+  const id = String(form.get("insightId") ?? "");
+  const skillId = String(form.get("skillId") ?? "");
+  if (form.get("mode") === "delete") await deleteInsight(user.id, id);
+  else await rejectInsight(user.id, id);
+  revalidatePath(`/skills/${skillId}`);
 }
 
 // ─── General coach chat (Coach tab) ───────────────────────────────────────
